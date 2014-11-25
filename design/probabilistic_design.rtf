@@ -1,0 +1,53 @@
+{\rtf1\ansi\ansicpg1252\cocoartf1138\cocoasubrtf510
+{\fonttbl\f0\fswiss\fcharset0 Helvetica;\f1\fswiss\fcharset0 ArialMT;}
+{\colortbl;\red255\green255\blue255;\red26\green26\blue26;}
+\paperw11900\paperh16840\margl1440\margr1440\vieww15200\viewh15620\viewkind0
+\pard\tx720\tx1440\tx2160\tx2880\tx3600\tx4320\tx5040\tx5760\tx6480\tx7200\tx7920\tx8640\pardirnatural
+
+\f0\fs24 \cf0 # Need random order of visual, auditory, cognitive, during training\
+\pard\pardeftab720
+
+\f1\fs30 \cf2 \
+- need to keep track of how many trials they needed to learn association in visual, auditory, cognitive \
+- program minimum 400 trials, but terminate as soon as they've chosen optimally over the last 200 trials \
+- must counterbalance which predictor is associated with 85% and 65% -- to rule out pre-existing associations or different difficulty learning one association vs. the other\
+\
+\pard\tx720\tx1440\tx2160\tx2880\tx3600\tx4320\tx5040\tx5760\tx6480\tx7200\tx7920\tx8640\pardirnatural
+
+\f0\fs24 \cf0 \
+\
+parameters\
+\
+#high and low probabilities\
+hi_prob = 0.85 # this is 85% probability stim1 is category A\
+lo_prob = 0.65 # this is 65% probability stim2 is category B\
+\
+visual1 =  dragonegg_red.png # stim1 (picture 1)\
+visual2 = dragonegg_blue.png #stim2 (picture2)\
+\
+audio1 = #sound file 1\
+audio2 = # sound file 2\
+\
+cog1 = #word 1 # e.g. CARNIVORE\
+cog2 = #word 2 # e.g. HERBIVORE\
+\
+#the image/word/category to be displayed, like ru and lu, at the bottom of screen, A and B\
+visualcategory1 = visual_dragon1.jpg\
+visualcategory2 = visual_dragon2.jpg\
+\
+auditorycategory1 = audio_dragon1.wav\
+auditorycategory2 = audio_dragon2.wav\
+\
+cogcategory1 = # e.g. GORUN\
+cogcategory2 = # e.g. FODUR\
+\
+\
+\
+max_trials = 1000\
+#how many maximum trials do we want in each modality (vis, audit, cog) i.e. if they haven't learned by then, give up on subject\
+\
+learningcriterion = 200\
+# subjects must have picked the most likely category in the last 200 trials, consecutively\
+#-- i.e. category A for stim1 and category B for stim2 (65%)\
+# terminate modality training at that point -- once subjects hit learning criterion, done with that modality\
+}

@@ -1,0 +1,4 @@
+* Installation
+- psychopy (pip install will work)
+- wxPython (psychopy is internally using it)
+- pyglet (psychopy is internally using it)

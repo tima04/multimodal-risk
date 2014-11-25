@@ -1,0 +1,215 @@
+Hey Amit,
+
+OK, here is the new design I've been working on. Could you have a look
+through "probabilistic_dragons_new_experiment_GORUNS_FODURS.pdf" and
+let me know what you think, in terms of how hard you think it would be
+to implement?
+
+I have also emailed Richard, but haven't heard back. I think if we
+could all work together and he could give us implementation tips,
+since he knows PsychoPy much better, that would be best -- but he's
+really busy, so we shouldn't count on it. If he does manage to help
+with programming, we can all divvy up who does what. (e.g. we still
+need to figure out the exact economic incentives in the economic
+choice task).
+
+
+Basically, what we want are 2 clear predictors: predictor 1 predicts
+success (correct classification) 85% of the time. Predictor 2 predicts
+success 65% of the time.  Since basing probabilities on noisy stimuli
+/correct performance under different levels of perceptual difficulty
+does not seem to work, why don't we precisely control probabilities
+via probabilistic feedback on identical stimuli which are category A
+85% of the time and category B 15% of the time; likewise, a second
+stimulus is category B 65% of the time, and category A 35% of the
+time.
+
+I attach:
+
+- 1 pdf that gives you an idea of the new visual, auditory, and
+  cognitive ("semantic") blocks. Please flip through the pdf slides to
+  get an idea of the stimuli and trial
+  structure. (probabilistic_dragons_new_experiment_GORUNS_FODURS.pdf)
+
+- stimuli (visual, auditory; words; positive and negative feedback).
+
+- list of things that need to be made variables
+  (probabilistic_design.rtf)
+
+* We are keeping the block structure, with each block containing
+  visual only, auditory only, and cognitive only trials. If you could
+  put the 3 blocks together into a random order, so we randomize it
+  for each subject, that would be great. The training goes on until
+  subject has learned (maximum 1000 trials per modality; learning
+  criterion is 200 sequential trials of picking the most likely
+  category).
+
+* new experiment is this: There are 2 types of dragon (A and B, or
+"GORUNS" and "FODURS"). There are: 2 visual stimuli (red egg and blue
+egg, i.e. cue1 and cue2); 2 sounds (dragon roar 1 and dragon roar 2);
+2 words ("herbivore" and "carnivore").  Subjects learn to categorize
+probabilistically:
+
+- whether the red egg and blue egg are more likely a Gorun or Fodur
+- egg; whether sound 1 and sound 2 are more likely a Gorun or Fodur
+- sound; whether a carnivore is more likely to be a Gorun or Fodur and
+- whether an herbivore is more likely a Gorun or Fodur.
+
+Trial structure for TRAINING TASK (see attached pdf):
+
+VISUAL:
+
+1. Show red or blue egg for 1000 ms (make this a variable, so we can
+change it; keep central parameters file).  2. choice screen with Gorun
+picture to the left of fixation and Fodur picture to the right of
+fixation. Subjects indicate either Left or Right (i.e. they guess
+whether the egg is a Gorun or Fodur egg). [ NO TIME LIMIT HERE -- NEXT
+SCREEN APPEARS ONLY AFTER SUBJECT PRESSES THE LEFT OR RIGHT
+BUTTON. For invalid button, display INVALID RESPONSE ] 3. Subject
+presses Left or Right arrow button; that stimulus is "highlighted"
+(see pdf). 300 ms (?).  4. Feedback screen for 500 ms: either a green
+check mark or a red cross. Feedback is probabilistic: - Red egg = 85%
+Gorun 15% Fodur I.e. we draw from a random distribution between 0 and
+1. If number < =.85 it is a Gorun we give positive feedback (see
+below). If number > 0.85, give incorrect feedback: it is a Fiso.  -
+Blue egg = 65 % Fodur, 35% Gorun.
+
+*** We need to counterbalance who gets red egg = 85% cue and who gets
+    blue egg = 65% cue. Need to keep this assignment for the choice
+    task too. Easiest is to have 2 versions of experiment, one in
+    which red egg = 85% and one in which red egg = 65% feature (and
+    vice versa with blue egg). Do the same for choice task, so we know
+    which feature is 85% or 65% for each subject.
+
+[ then next trial ]
+
+- minimum number of trials: 400 maximum number of trials: 700 - 1000?
+- I'd say 1000 max; if subject hasn't learned by then, give up on
+- subject.  half of all trials have red egg, half of all trials have
+- blue egg.  pseudorandom order of red vs. blue egg trials.  if
+- subject has picked the most likely category for 200 consecutive
+- trials, task finishes, we go onto the next block (e.g. auditory or
+- cognitive, or end the learning task if those blocks have already
+- been done).
+
+
+AUDITORY:
+
+1. play sound (sound 1 or sound 2) (1000 ms) 2. choice screen with 2
+speaker symbols; play dragonsound 1 in left ear (Gorun sounds) and
+dragonsound 2 in right ear (Fodur sounds). [ NOTE: maybe we can just
+play high and low tone to symbolize Gorun and Fodur categories; only
+sound 1 and sound 2 should be probabilistic dragon sounds. So the
+dragon sounds are probabilistic; the tones represent 100% category.
+Keep playing left and right ear sounds until subject has made a choice
+3. Subject presses either Left or Right button; that side's speaker
+symbol is "highlighted". (300 ms?)  4. Feedback screen: 500 ms: either
+green check mark or red cross. Probabilistic feedback: sound 1 = Gorun
+85% of the time, Fodur 15% of the time sound 2 = Fodur 65%, Gorun 35%
+of the time.
+
+Need to counterbalance whether sound 1 is 85% or 65% feature, across
+subjects (to prevent low-level confounds such as one sound is easier
+to hear than the other).
+
+COGNITIVE (semantic).
+
+1. show word (CARNIVORE or HERBIVORE) - (1000 ms) 2. choice screen
+with words GORUN and FODUR left and right of fixation cross. No time
+limit -- subject chooses Left or Right when ready.  3. Subject presses
+Left or Right arrow button; that word is made BOLD FONT. (300 ms?)
+4. Feedback screen: 500 ms: green check mark or red
+cross. Probabilistic as above (85% and 65%; counterbalance which word
+is which probability, across subjects).
+
+The counter-balancing has to be for the 2 visual, 2 auditory, and 2
+semantic features, i.e. best to have multiple versions of the training
+task, for each counterbalancing. Same number of choice task versions,
+keeping the same counterbalancing.
+
+NOTE visual above is visual-visual probabilistic association (an egg
+picture is associated with a particular "look" of dragon); auditory
+training task is auditory-auditory probabilistic association
+association (sound 1 or 2 is associated with fixed sound defining
+Gorun or fixed sound defining Fodur). Cognitive/ semantic is word-word
+associations.
+
+
+CHOICE TASK:
+
+remains identical to what we had before, except instead of visual
+motion, ru/lu, and arithmetic stimuli, we now display: - red egg then
+blue egg (random order) - sound 1 then sound 2 (random order) - word 1
+then word 2 (random order)
+
+together with the money amounts from before. I.e. just swap out the
+visual, auditory and arithmetic stimuli with new stimuli.
+
+
+Ideally we should make everything that can be made a variable a
+parameter, including the actual high and low probabilities (i.e. we
+might want to change 85% to 90% and 65% to 70%). I.e. let's not
+hard-code the probabilities. I attach a text file of possible
+parameters.
+
+We should probably display the instruction text (see pdf) in German,
+not English. For now, we can use the English text as a place holder. I
+paste the text below.
+
+Please let me know what you think, and how hard you think it would be
+to implement the new training task!!! Thanks a lot!
+
+Flavia
+
+
+
+
+TEXT:
+
+Visual instructions: In the land of Smorgur, there are two kinds of
+dragon: Goruns and Fodurs. Goruns look more like a circle and Fodurs
+look more like a figure 8.  Gorun and Fodur eggs are usually of
+different color. However, some Gorun eggs look like Fodur eggs, and
+some Fodur eggs look like Gorun eggs.  Your task is to learn THE MOST
+LIKELY dragon category to which an egg belongs, even if sometimes an
+identical-looking egg can be either a Gorun or Fodur egg.  Because
+category membership is probabilistic, your answer cannot always be
+100% correct. By picking the most likely category to which the egg
+belongs, you can be correct most (but not all) of the time. The
+following eggs are drawn at random from Gorun and Fodur eggs. Classify
+each egg as either a Gorun or a Fodur egg.  When you have consistently
+picked the most likely dragon for the last 200 trials, your learning
+will be complete.  LEFT arrow = GORUN egg; RIGHT arrow = FODUR egg.
+
+
+Auditory instructions: In the land of Smorgur, there are two kinds of
+dragon: Goruns and Fodurs. Goruns and Fodurs make different kinds of
+vocalizations. Goruns make roaring sounds whereas Fodur sounds are
+more like a song. However, when Goruns and Fodurs are lonely, they
+make other kinds of calls. Sometimes, a lonely Gorun will sound like a
+lonely Fodur, and a lonely Fodur will sound like a lonely Gorun.  Your
+task is to choose THE MOST LIKELY dragon category to which a call
+belongs, even if sometimes an identical-sounding call will signal
+either a Gorun or a Fodur.  Because category membership is
+probabilistic, you answer cannot always be 100% correct. By picking
+the most likely category to which the sound belongs, you can be
+correct most (but not all) of the time. The following sounds are drawn
+at random from Gorun and Fodur sounds. Classify each sound as either a
+Gorun or a Fodur sound.  When you have consistently picked the most
+likely dragon for the last 200 trials, your learning will be complete.
+LEFT arrow = Gorun sound; RIGHT arrow = Fodur sound.
+
+Cognitive instructions:
+
+In the land of Smorgur, there are two kinds of dragon: Goruns and
+Fodurs. Some dragons are carnivores and some dragons are herbivores.
+Your task is to gure out if a carnivore or an herbivore is MOST LIKELY
+a Gorun or Fodur.  Because category membership is probabilistic, you
+answer cannot always be 100% correct. By picking the most likely
+category to which a carnivore or herbivore belongs, you can be correct
+most (but not all) of the time. The following carnivores and
+herbivores are drawn at random from Gorun and Fodur dragons. Classify
+each carnivore and each herbivore as either a Gorun or a Fodur.  When
+you have consistently picked the most likely dragon for the last 200
+trials, your learning will be complete.  LEFT arrow = Gorun; RIGHT
+arrow = Fodur.]
