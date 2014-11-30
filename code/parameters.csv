@@ -1,0 +1,6 @@
+This is a comment line and will be ignored. A line if it is not a comment then its first field is a parameter, second is the parameter value and anything after second field is a commet and will be ignored. Separate the fields with a comma(,).
+prob_drg1_given_stim1, 0.85, probability of the dragon1 given stimulus1 and so on
+prob_drg1_given_stim2, 0.35
+stimulus_time, 0.5, time in seconds for which stimulus is shown
+wait_time, 0.5, All other waiting times like time till which feedback is shown.
+ntrial, 2,  number of learning trials
