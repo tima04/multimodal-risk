@@ -9,10 +9,13 @@ def main():
     global optimals # list of booleans, i'th entry is 1 if i'th choice is \
         # optimal else 0
     #parse_parameters()
-    win = visual.Window([800, 600], allowGUI=True, 
-                             monitor='testMonitor', 
-                             units='deg',
-                             fullscr=False)
+    win = visual.Window([800, 600], 
+                        allowGUI=True, 
+                        monitor='testMonitor', 
+                        units='deg',
+                        fullscr=False,
+                        color = "grey")
+
     blocks = [Visual(win), Semantic(win), Auditory(win)]
     #blocks = [Auditory(win)] 
     random.shuffle(blocks)
@@ -291,7 +294,6 @@ class Auditory(Training):
         self.win.flip()
         play(drg1)
         play(drg2)
-        time.sleep(wait_time) 
         self.speaker1.color = self.speaker2.color = "white"
 
 if __name__ == "__main__":

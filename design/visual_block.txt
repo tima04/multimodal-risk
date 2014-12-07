@@ -1,0 +1,8 @@
+VISUAL BLOCK
+In the land of Smorgur, there are two kinds of dragon: Goruns and Fodurs. Goruns look more like a circle and Fodurs look more like a figure 8.
+Gorun and Fodur eggs are usually of different color. However, some Gorun eggs look like Fodur eggs, and some Fodur eggs look like Gorun eggs.
+Your task is to learn THE MOST LIKELY dragon category to which an egg belongs, even if sometimes an identical-looking egg can be either a Gorun or Fodur egg.
+Because category membership is probabilistic, your answer cannot always be 100% correct. By picking the most likely category to which the egg belongs, you can
+be correct most (but not all) of the time. The following eggs are drawn at random from Gorun and Fodur eggs. Classify each egg as either a Gorun or a Fodur egg.
+When you have consistently picked the most likely dragon for the last 200 trials, your learning will be complete.
+LEFT arrow = GORUN egg; RIGHT arrow = FODUR egg.

@@ -1,0 +1,36 @@
+Hey Amit,
+
+I have a more detailed to do list, but it only makes sense after some of the more basic things are implemented. Here is a basic list for now. I also attach a speaker symbol, "ru.wav" and "lu.wav", and two "highlight boxes".
+
+thanks!
+
+Flavia
+
+
+- need pop-up box where subject number is entered, need to keep track of subject number
+
+- images of the 2 dragons should be left and right on screen, not above
+
+- show central fixation cross; dragon images are shown left and right of this fixation cross, same with words or speaker symbols
+
+- escape should quit experiment
+
+- remove "press left or right arrow key" : just display central fixation cross. Subjects will know to choose left or right.
+
+- do not show IMAGES of dragons for Semantic and Auditory trials, only for visual trials. 
+
+- For semantic: show "FODUR" and "GORUN" text left and right of fixation cross at same distance as images, not images
+
+- For auditory, show two speaker symbols and play a high and low tone in left and right ear respectively. For now, let's use ru.wav and lu.wav from the old experiment.
+
+- auditory: when single dragon sound is played, show just a central fixation cross. 
+
+- after subject chooses left or right, keep current image on screen and highlight it.
+
+- For highlighting, how about if we highlight with a yellow box (display superimposed on one of the two options, i.e. on top of dragon image, speaker sound, or word) for all 3 conditions?
+
+The problem though is: how do I know that the image of the box will scale the same way as the TEXT font size on a bigger screen? E.g. if we display on a bigger monitor, and the FODUR will now look bigger, how do I make sure the yellow bounding box will scale accordingly to surround the text?
+
+- need 8 different randomizations of who gets red egg = 85% as opposed to 65%; who gets sound 1 as 85% vs. 65%; who gets HERBIVORE as 85% vs 65%.
+
+- need auditory condition to work: display sound 1 or sound 2 in both ears, then ru in left ear, lu in right ear.

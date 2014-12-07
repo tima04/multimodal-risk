@@ -1,0 +1,8 @@
+SEMANTIC BLOCK
+In the land of Smorgur, there are two kinds of dragon: Goruns and Fodur. Some dragons are carnivores and some dragons are herbivores.
+Your task is to gure out if a carnivore or an herbivore is MOST LIKELY a Gorun or Fodur.
+Because category membership is probabilistic, you answer cannot always be 100% correct. By picking the most likely category to which a carnivore or herbivore belongs,
+you can be correct most (but not all) of the time. The following carnivores and herbivores are drawn at random from Gorun and Fodur dragons. Classify each
+carnivore and each herbivore as either a Gorun or a Fodur.
+When you have consistently picked the most likely dragon for the last 200 trials, your learning will be complete.
+LEFT arrow = GORUN; RIGHT arrow = FODUR.
