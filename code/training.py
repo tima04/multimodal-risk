@@ -3,7 +3,7 @@ import time
 from psychopy import core, visual, event, sound
 from abc import ABCMeta, abstractmethod
 from parameters import *
-
+from pygame import mixer
 
 def main():
     global optimals # list of booleans, i'th entry is 1 if i'th choice is \
@@ -15,9 +15,9 @@ def main():
                         units='deg',
                         fullscr=False,
                         color = "grey")
-
-    blocks = [Visual(win), Semantic(win), Auditory(win)]
-    #blocks = [Auditory(win)] 
+    mixer.init()
+    #blocks = [Visual(win), Semantic(win), Auditory(win)]
+    blocks = [Auditory(win)] 
     random.shuffle(blocks)
     for block in blocks:
         optimals = []
@@ -29,6 +29,8 @@ def main():
     win.close()
     core.quit()
 
+# not using this function now,
+# parameters are enter in a python file
 def parse_parameters():
     global ntrial, stimulus_time, wait_time, \
         prob_drg1_given_stim1, prob_drg1_given_stim2
@@ -70,8 +72,6 @@ class Training(object):
         # Following are defined in concrete classes.
         self.dragon1 = None
         self.dragon2 = None
-        self.dragon1_highlighted = None
-        self.dragon2_highlighted = None
         self.stimulus1 = None
         self.stimulus2 = None
         self.start_message = None  #image to be shown at the start \
@@ -253,10 +253,14 @@ class Semantic(Training):
 class Auditory(Training):
     def __init__(self, win):
         Training.__init__(self, win)
-        self.dragon1 = sound.SoundPygame(value="../design/ru.wav")
-        self.dragon2 = sound.SoundPygame(value="../design/lu.wav")
-        self.stimulus1 = sound.SoundPygame(value="../design/sound1.wav")
-        self.stimulus2 = sound.SoundPygame(value="../design/sound1.wav")
+        # self.dragon1 = sound.SoundPygame(value="../design/ru.wav")
+        # self.dragon2 = sound.SoundPygame(value="../design/lu.wav")
+        self.dragon1 = mixer.Sound("../design/ru.wav")
+        self.dragon2 = mixer.Sound("../design/lu.wav")
+        self.stimulus1 = mixer.Sound("../design/sound1.wav")
+        self.stimulus2 = mixer.Sound("../design/sound1.wav")
+        # self.stimulus1 = sound.SoundPygame(value="../design/sound1.wav")
+        # self.stimulus2 = sound.SoundPygame(value="../design/sound1.wav")
         self.start_message = visual.ImageStim(self.win,
                                               image="../design/auditory_block.png",
                                               pos=(0, 0))
@@ -276,10 +280,19 @@ class Auditory(Training):
         time.sleep(3)
     
     def render_dragons(self, highlight=""):
-        def play(drg):
-            if drg:
-                drg.play()
-                time.sleep(wait_time)
+        def play(drg1, drg2):
+            """ Play drg1 from the left speaker and drg2 from the right.
+            One of them can be an empty string then only play the other"""
+            left_channel = mixer.Channel(0)
+            right_channel = mixer.Channel(1)
+            left_channel.set_volume(1,0)
+            right_channel.set_volume(0,1)
+            if drg1:
+                left_channel.play(drg1)
+            if drg2:
+                right_channel.play(drg2)
+            time.sleep(wait_time)
+            
         if highlight == "left":
             self.speaker1.color = "yellow"
             drg1, drg2 = self.dragon1, ""
@@ -292,8 +305,7 @@ class Auditory(Training):
         self.speaker2.draw()
         self.fixation.draw()
         self.win.flip()
-        play(drg1)
-        play(drg2)
+        play(drg1, drg2)
         self.speaker1.color = self.speaker2.color = "white"
 
 if __name__ == "__main__":
