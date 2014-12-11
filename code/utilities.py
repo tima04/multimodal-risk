@@ -4,6 +4,8 @@ import json
 from psychopy import gui
 
 def get_order(id_):
+    """Return the order of 3 modulaties
+    in which they will be presented"""
     assert type(id_) == int and id_ >= 0
     n = id_ % 6
     if n == 0:
@@ -20,6 +22,13 @@ def get_order(id_):
         return ('a', 's', 'v')
 
 def get_dominant_stimulie(id_):
+    """Return value is of the form "ijk" where
+    i,j,k are in {1,2}. The interpretation of
+    return value "ijk" is that stim i is dominant
+    for visual mode, j for auditory mode and k
+    for semantic mode. There are 8 possible return 
+    values, for id_ = 0 mod 8, "111" is returned, 
+    for id_ = 1 mod 8, "112" and so on."""
     assert type(id_) == int and id_ >= 0
     n = id_ % 8
     encode = {"1": "0", "2": "1"}

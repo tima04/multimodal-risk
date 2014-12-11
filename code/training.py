@@ -35,7 +35,7 @@ def main():
     data['id'] = id_
     
     win = visual.Window([800, 600], allowGUI=True, units='deg',
-                        color = "grey",fullscr=False, monitor="testMonitor")
+                        color = "grey",fullscr=True, monitor="testMonitor")
     mixer.init(channels=2)
 
     order = get_order(id_)
@@ -51,8 +51,8 @@ def main():
             return Semantic(win, dominant_stimulie[1])
         else:
             return Auditory(win, dominant_stimulie[2])
-    #blocks = [init(arg) for arg in order]
-    blocks = [init('v')]
+    blocks = [init(arg) for arg in order]
+    #blocks = [init('a')]
 
     for block in blocks:
         rslt = block.start_trial()
@@ -307,11 +307,11 @@ class Auditory(Training):
                                               image="../design/auditory_block.png",
                                               pos=(0, 0))
         self.speaker1 = visual.ImageStim(self.win,
-                                    image="../design/speaker.png",
+                                    image="../design/speaker_symbol.png",
                                     color="white",
                                     pos=(-5,0))
         self.speaker2 = visual.ImageStim(self.win,
-                                    image="../design/speaker.png",
+                                    image="../design/speaker_symbol.png",
                                     color="white",
                                     pos=(5,0))
     
@@ -321,14 +321,15 @@ class Auditory(Training):
     def render_stimulus(self, stimulus):
         self.fixation.draw()
         self.win.flip()
-        stimulus.play()
+        channel = mixer.Channel(0)
+        channel.set_volume(1,1)
+        channel.play(stimulus)
         time.sleep(1.2) # Todo: setting it arbitrary current WAIT_TIME is not enough.
     
     def render_dragons(self, highlight=""):
         def play(drg1, drg2):
             """ Play drg1 from the left speaker and drg2 from the right.
             One of them can be an empty string then only play the other"""
-            #import pdb; pdb.set_trace()
             left = mixer.Channel(0)
             left.set_volume(1,0)
             right = mixer.Channel(1)
