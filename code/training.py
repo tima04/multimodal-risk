@@ -48,12 +48,12 @@ def main():
         assert arg in ('v', 'a', 's')
         if arg == 'v': 
             return Visual(win, dominant_stimulie[0])
-        elif arg == 's': 
-            return Semantic(win, dominant_stimulie[1])
+        elif arg == 'a': 
+            return Auditory(win, dominant_stimulie[1])
         else:
-            return Auditory(win, dominant_stimulie[2])
-    blocks = [init(arg) for arg in order]
+            return Semantic(win, dominant_stimulie[2])
 
+    blocks = [init(arg) for arg in order]
     for block in blocks:
         rslt = block.start_trial()
         data[str(block)] = rslt
