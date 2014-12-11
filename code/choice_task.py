@@ -7,7 +7,7 @@ from abc import ABCMeta, abstractmethod
 interstim_period = 0.5
 delay = 1
 choice_screen_time = 2.5 
-ntrial = 5
+ntrial = 2
 
 def main():
     win = visual.Window([800, 600], 

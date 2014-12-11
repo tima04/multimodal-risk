@@ -1,61 +1,68 @@
+"""
+There are 3 modulaties, visual, auditory and semantic. The order in
+which they are presented to a subject is determined by the subject's id.
+The function get_order takes subject's id modulo 6 and returns the order.
+
+For each modulaties there are 2 sitmulus, stim1 and stim2, stim1 (stim2) has
+a higher probability of belonging to the left(right) dragon. One of the
+stimulus is dominant and anther is weaker, meaning that given
+a stimuls, probability of correctly classifying a dragon to which 
+it belongs is higher for the dominant stimulus then for the weaker one. 
+The dominant and weaker stimulus are a function of a subject's id.
+Dominant stimulie are "ijk" meant that stim i is
+dominant for visual mode, stim j for auditory and stim k for semantic,
+(i, j, k are in {1, 2}). The function dominant_stimulie takes id modulo
+8 as an argument and returns the dominant stimulus, eg: dominant_stimulie(0)
+= "111".
+stim1 is blue_egg for visual mode, herbivore for semantic mode
+and dragon1_sound for auditory mode.
+"""
+
 import random
 import time
 from psychopy import core, visual, event, sound
 from abc import ABCMeta, abstractmethod
-from parameters import *
+from parameters_training import *
 from pygame import mixer
+from utilities import get_order, get_dominant_stimulie, timestamp, \
+    save_data, dialog_box
 
 def main():
-    global optimals # list of booleans, i'th entry is 1 if i'th choice is \
-        # optimal else 0
-    #parse_parameters()
-    win = visual.Window([800, 600], 
-                        allowGUI=True, 
-                        monitor='testMonitor', 
-                        units='deg',
-                        fullscr=False,
-                        color = "grey")
-    mixer.init()
-    #blocks = [Visual(win), Semantic(win), Auditory(win)]
-    blocks = [Auditory(win)] 
-    random.shuffle(blocks)
-    for block in blocks:
-        optimals = []
-        n = block.start_trial()
-        if n == max_trial:
-            print "subject did not learn"
+    data = {'start_time': timestamp()}
+    id_ = dialog_box()
+    if not id_:
+        return None
+    data['id'] = id_
+    
+    win = visual.Window([800, 600], allowGUI=True, units='deg',
+                        color = "grey",fullscr=False, monitor="testMonitor")
+    mixer.init(channels=2)
+
+    order = get_order(id_)
+    dominant_stimulie = get_dominant_stimulie(id_)
+    data['order'] = order
+    data['dominant_stimulie'] = dominant_stimulie
+
+    def init(arg):
+        assert arg in ('v', 'a', 's')
+        if arg == 'v': 
+            return Visual(win, dominant_stimulie[0])
+        elif arg == 's': 
+            return Semantic(win, dominant_stimulie[1])
         else:
-            print "subject learned in %s trials"%n
+            return Auditory(win, dominant_stimulie[2])
+    #blocks = [init(arg) for arg in order]
+    blocks = [init('v')]
+
+    for block in blocks:
+        rslt = block.start_trial()
+        data[str(block)] = rslt
+
+    data['finish_time'] = timestamp()
+    save_data(id_, data)
+
     win.close()
     core.quit()
-
-# not using this function now,
-# parameters are enter in a python file
-def parse_parameters():
-    global ntrial, stimulus_time, wait_time, \
-        prob_drg1_given_stim1, prob_drg1_given_stim2
-    global prob_drg2_given_stim1, prob_drg2_given_stim2 # not present in parameter.csv
-    # parse the parametes file, and obtain parameters
-    lines = open("parameters.csv").readlines()
-    def par_value(parameter, lines=lines):
-        """Check for the first field in each line, if it contains the
-        parameter then return the second field(by assumption it contains
-        the value of the parameter)"""
-        value = filter(lambda s: s.startswith(parameter), 
-                       lines)[0].split(",")[1]
-        return float(value)
-    try:
-        ntrial = int(par_value('ntrial'))
-        prob_drg1_given_stim1 = par_value('prob_drg1_given_stim1')
-        prob_drg1_given_stim2 = par_value('prob_drg1_given_stim2')
-        stimulus_time = par_value('stimulus_time')
-        wait_time = par_value('wait_time')
-    except:
-        print "Can not parse the parameters.csv"
-        pass
-    prob_drg2_given_stim1 = 1 - prob_drg1_given_stim1
-    prob_drg2_given_stim2 = 1 - prob_drg1_given_stim2
-
 
 class Training(object):
     """
@@ -65,10 +72,22 @@ class Training(object):
     __metaclass__ = ABCMeta
     
     @abstractmethod
-    def __init__(self, win):
+    def __init__(self, win, dominant_stimulus):
         "stimulus1 and 2 are to be defined in concrete classes"
         self.win = win
-        
+        # assigning the classification probabilities
+        assert dominant_stimulus in "12"
+        if dominant_stimulus == "1":
+            self.prob_drg1_given_stim1, self.prob_drg2_given_stim2 \
+                = MAX_PROB_CORRECT_CLAASIFICATION_GIVEN_DOMINANT_STIM, \
+                MAX_PROB_CORRECT_CLAASIFICATION_GIVEN_WEAKER_STIM
+        else:
+            self.prob_drg1_given_stim1, self.prob_drg2_given_stim2 \
+                = MAX_PROB_CORRECT_CLAASIFICATION_GIVEN_WEAKER_STIM, \
+                MAX_PROB_CORRECT_CLAASIFICATION_GIVEN_DOMINANT_STIM
+        self.prob_drg2_given_stim1 = 1 - self.prob_drg1_given_stim1
+        self.prob_drg1_given_stim2 = 1 - self.prob_drg2_given_stim2
+
         # Following are defined in concrete classes.
         self.dragon1 = None
         self.dragon2 = None
@@ -83,32 +102,52 @@ class Training(object):
         self.negative_feedback = visual.ImageStim(self.win, 
                                                   image="../design/negative.png", 
                                                   pos=(0, 0), size=2)
-        self.fixation = visual.TextStim(self.win,
-                                                      text="+",
-                                                      pos=(0,0))
-        global optimals
+        self.fixation = visual.TextStim(self.win, text="+", pos=(0,0))
+        self.optimals = [] # list of booleans, i'th entry is 1 if i'th choice is \
+                        # optimal else 0
+
 
     def start_trial(self):
+        """This is the main api of the class, returns the dictionary data."""
+        data = {} # This contains the data for this block, this is also \
+               # the return value of this method. \
+               #The keys are trials, total_time and learnp.
+        trials = [] # This will be added to self.data, each element is a \
+                      # dictionary with keys "stim", "key", "time" and 'feedback'
+        learnp = False # represents if the subject learned in this block.
+        start_time = time.time()
+
         # At the start show the message and
         # wait till the user presses any key
         self.start_message.draw() 
         self.win.flip()
         event.waitKeys()
-        
+
         # start the training
-        for i in range(max_trial):
+        for ntrial in range(MAX_TRIAL):
+            trial = {} # this will be added to data.
             stimulus = self.present_stimulus()
-            key = self.get_key()
-            self.give_feedback(key, stimulus)
-            if self.get_accuracy() > min_accuracy:
-                return i + 1
-        return i + 1
+            trial['stim'] = stimulus
+            key, duration = self.get_key()
+            trial['key'] = key
+            trial["time"] = duration
+            correctp = self.give_feedback(key, stimulus)
+            trial['correctp'] = correctp
+            trials.append(trial)
+            if self.get_accuracy() > MIN_ACCURACY:
+                learnp = True
+                break
+        # add to the data and return
+        data['trials'] = trials
+        data['learnp'] = learnp
+        data['total_time'] = time.time() - start_time
+        return data
         
     def get_accuracy(self):
-        if len(optimals) < ntest:
+        if len(self.optimals) < NTEST:
             return 0
         else:
-            return sum(optimals[-ntest:-1]) / float(ntest)
+            return sum(self.optimals[-NTEST:-1]) / float(NTEST)
 
     def present_stimulus(self):
         """randomly pick one of the stimulus and return intger 1
@@ -134,12 +173,11 @@ class Training(object):
         Show the dragons and ask the user to identify
         the one corresponding to the stimulus presented by the 
         present_stimulus method, by clicking left or right arrow.
-        Return the key pressed(either left or right). If the user
-        presses 'escape' then quit the experiment."""
+        Return the key pressed(either left or right) and the time taken.
+        If the user presses 'escape' then quit the experiment."""
         self.render_dragons()
-        key = event.waitKeys(keyList=["left", 
-                                       "right",
-                                       "escape"])[0]
+        start_time = time.time()
+        key = event.waitKeys(keyList=["left", "right", "escape"])[0]
         # quit the experiment if the user presses escape
         if key == 'escape':
             self.win.close()
@@ -147,30 +185,31 @@ class Training(object):
 
         # highlight the choice
         self.render_dragons(key)
-        return key
+        return (key, time.time() - start_time)
      
     def give_feedback(self, key, stimulus):
         # check the correctness of the user's choice
         if stimulus == 1:
-            chance_correct = prob_drg1_given_stim1 if key == 'left' else \
-                             prob_drg2_given_stim1
+            chance_correct = self.prob_drg1_given_stim1 if key == 'left' else \
+                             self.prob_drg2_given_stim1
         else:
-            chance_correct = prob_drg1_given_stim2 if key == "left" else \
-                             prob_drg2_given_stim2
+            chance_correct = self.prob_drg1_given_stim2 if key == "left" else \
+                             self.prob_drg2_given_stim2
         
-        optimals.append(chance_correct > 0.5)
+        self.optimals.append(chance_correct > 0.5)
         correctp = (chance_correct > random.uniform(0, 1))
 
         # give the feedback
         self.positive_feedback.draw() if correctp else \
             self.negative_feedback.draw()
         self.win.flip()
-        core.wait(wait_time)
+        core.wait(WAIT_TIME)
+        return correctp
 
 
 class Visual(Training):
-    def  __init__(self, win):
-        Training.__init__(self, win)
+    def  __init__(self, win, dominant_stimulus):
+        Training.__init__(self, win, dominant_stimulus)
         self.dragon1 = visual.ImageStim(self.win, 
                                         image="../design/visual_dragon1_sm.jpg",
                                         pos=(-7.0, 0.0),
@@ -188,15 +227,19 @@ class Visual(Training):
         self.start_message = visual.ImageStim(self.win,
                                               image="../design/visual_block.png",
                                               pos=(0, 0))
+    
+    def __str__(self):
+        return "Visual"
+
     def render_stimulus(self, stimulus):
         "render stimuls on the window"
         stimulus.draw()
         self.fixation.draw()
         self.win.flip()
-        core.wait(stimulus_time)
+        core.wait(STIMULUS_TIME)
     
     def render_dragons(self, highlight=""):
-        time = wait_time if highlight else 0
+        time = WAIT_TIME if highlight else 0
         if highlight == "left":
             self.dragon1.color="yellow"
         if highlight == "right":
@@ -210,8 +253,8 @@ class Visual(Training):
 
 
 class Semantic(Training):
-    def  __init__(self, win):
-        Training.__init__(self, win)
+    def  __init__(self, win, dominant_stimulus):
+        Training.__init__(self, win, dominant_stimulus)
         self.dragon1 = visual.TextStim(self.win,
                                        text="Gorun",
                                        pos=(-5,0),
@@ -229,15 +272,18 @@ class Semantic(Training):
         self.start_message = visual.ImageStim(self.win,
                                               image="../design/semantic_block.png",
                                               pos=(0, 0))
+    
+    def __str__(self):
+        return "Semantic"
 
     def render_stimulus(self, stimulus):
         "render stimuls on the window"
         stimulus.draw()
         self.win.flip()
-        core.wait(stimulus_time)
+        core.wait(STIMULUS_TIME)
     
     def render_dragons(self, highlight=""):
-        time = wait_time if highlight else 0
+        time = WAIT_TIME if highlight else 0
         if highlight == "left":
             self.dragon1.color = "yellow"
         if highlight == "right":
@@ -251,16 +297,12 @@ class Semantic(Training):
         
 
 class Auditory(Training):
-    def __init__(self, win):
-        Training.__init__(self, win)
-        # self.dragon1 = sound.SoundPygame(value="../design/ru.wav")
-        # self.dragon2 = sound.SoundPygame(value="../design/lu.wav")
-        self.dragon1 = mixer.Sound("../design/ru.wav")
-        self.dragon2 = mixer.Sound("../design/lu.wav")
-        self.stimulus1 = mixer.Sound("../design/sound1.wav")
-        self.stimulus2 = mixer.Sound("../design/sound1.wav")
-        # self.stimulus1 = sound.SoundPygame(value="../design/sound1.wav")
-        # self.stimulus2 = sound.SoundPygame(value="../design/sound1.wav")
+    def __init__(self, win, dominant_stimulus):
+        Training.__init__(self, win, dominant_stimulus)
+        self.dragon1 = mixer.Sound("../design/sound_files/ba_00.wav")
+        self.dragon2 = mixer.Sound("../design/sound_files/lu_00.wav")
+        self.stimulus1 = mixer.Sound("../design/sound_files/dragon1.wav")
+        self.stimulus2 = mixer.Sound("../design/sound_files/dragon2.wav")
         self.start_message = visual.ImageStim(self.win,
                                               image="../design/auditory_block.png",
                                               pos=(0, 0))
@@ -272,26 +314,30 @@ class Auditory(Training):
                                     image="../design/speaker.png",
                                     color="white",
                                     pos=(5,0))
+    
+    def __str__(self):
+        return "Semantic"
 
     def render_stimulus(self, stimulus):
         self.fixation.draw()
         self.win.flip()
         stimulus.play()
-        time.sleep(3)
+        time.sleep(1.2) # Todo: setting it arbitrary current WAIT_TIME is not enough.
     
     def render_dragons(self, highlight=""):
         def play(drg1, drg2):
             """ Play drg1 from the left speaker and drg2 from the right.
             One of them can be an empty string then only play the other"""
-            left_channel = mixer.Channel(0)
-            right_channel = mixer.Channel(1)
-            left_channel.set_volume(1,0)
-            right_channel.set_volume(0,1)
+            #import pdb; pdb.set_trace()
+            left = mixer.Channel(0)
+            left.set_volume(1,0)
+            right = mixer.Channel(1)
+            right.set_volume(0,1)
             if drg1:
-                left_channel.play(drg1)
+                left.play(drg1)
             if drg2:
-                right_channel.play(drg2)
-            time.sleep(wait_time)
+                right.play(drg2)
+            time.sleep(WAIT_TIME)
             
         if highlight == "left":
             self.speaker1.color = "yellow"
@@ -307,6 +353,7 @@ class Auditory(Training):
         self.win.flip()
         play(drg1, drg2)
         self.speaker1.color = self.speaker2.color = "white"
+
 
 if __name__ == "__main__":
     main()
