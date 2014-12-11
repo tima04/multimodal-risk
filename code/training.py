@@ -29,13 +29,14 @@ from utilities import get_order, get_dominant_stimulie, timestamp, \
 
 def main():
     data = {'start_time': timestamp()}
+
     id_ = dialog_box()
     if not id_:
         return None
     data['id'] = id_
     
     win = visual.Window([800, 600], allowGUI=True, units='deg',
-                        color = "grey",fullscr=True, monitor="testMonitor")
+                        color = "grey",fullscr=False, monitor="testMonitor")
     mixer.init(channels=2)
 
     order = get_order(id_)
@@ -52,7 +53,6 @@ def main():
         else:
             return Auditory(win, dominant_stimulie[2])
     blocks = [init(arg) for arg in order]
-    #blocks = [init('a')]
 
     for block in blocks:
         rslt = block.start_trial()
@@ -126,7 +126,7 @@ class Training(object):
         # start the training
         for ntrial in range(MAX_TRIAL):
             trial = {} # this will be added to data.
-            stimulus = self.present_stimulus()
+            stimulus = self.present_stimulus(trials)
             trial['stim'] = stimulus
             key, duration = self.get_key()
             trial['key'] = key
@@ -149,14 +149,22 @@ class Training(object):
         else:
             return sum(self.optimals[-NTEST:-1]) / float(NTEST)
 
-    def present_stimulus(self):
-        """randomly pick one of the stimulus and return intger 1
-        if stimuls 1 is picked 2 otherwise. Show the stimulus
-        for time = stimulus time"""
-        rand_num = random.choice([1,2])
-        self.render_stimulus(self.stimulus1) if rand_num == 1 else \
+    def present_stimulus(self, trials):
+        """If in the last MAX_TRIAL, only one stimulus appeared then pick the
+        other one else randomly pick one of them. Return 1 if stimuls 
+        1 is picked 2 otherwise. Show the stimulus for time = stimulus time"""
+        stim = None
+        # check if in the last MAX_TRIAL same stim is picked, pick a different
+        # one in that case otherwise pick randomly.
+        if len(trials) >= MAX_STREAK:
+            stims = [trial['stim'] for trial in trials[-MAX_STREAK:]]
+            if len(set(stims)) == 1:
+                stim = 1 if 2 in stims else 2
+        stim = random.choice([1,2]) if not stim else stim
+        # render the stimulus
+        self.render_stimulus(self.stimulus1) if stim == 1 else \
             self.render_stimulus(self.stimulus2)
-        return rand_num
+        return stim
     
     @abstractmethod
     def render_stimulus(self):
@@ -316,7 +324,7 @@ class Auditory(Training):
                                     pos=(5,0))
     
     def __str__(self):
-        return "Semantic"
+        return "Auditory"
 
     def render_stimulus(self, stimulus):
         self.fixation.draw()

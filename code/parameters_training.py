@@ -11,4 +11,5 @@ WAIT_TIME = 0.5 # All other waiting times like time till which feedback is shown
 # accurate choices is more then min_accuracy 
 #then learning phase is over.
 NTEST, MIN_ACCURACY = 5, 0.7
-MAX_TRIAL = 7 #if subject has not learn by max_trial then give up on her.
+MAX_TRIAL = 6 # if subject has not learn by max_trial then give up on her.
+MAX_STREAK = 5 # maximum number of times a stimulus can appear in a row.
