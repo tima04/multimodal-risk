@@ -4,7 +4,7 @@
 MAX_PROB_CORRECT_CLAASIFICATION_GIVEN_DOMINANT_STIM = 0.85
 MAX_PROB_CORRECT_CLAASIFICATION_GIVEN_WEAKER_STIM = 0.65
 
-STIMULUS_TIME =  0.5 # time in seconds for which stimulus is shown
+STIMULUS_DURATION =  0.8 # time in seconds for which stimulus is shown
 WAIT_TIME = 0.5 # All other waiting times like time till which feedback is shown.
 
 # if in the last ntest trial proportion of
@@ -30,15 +30,23 @@ STIM2_VISUAL = "../design/dragonegg_red.png"
 STIM1_AUDIO = "../design/sound_files/dragon1.wav"
 STIM2_AUDIO = "../design/sound_files/dragon2.wav"
 #start message
-START_MESSAGE_VISUAL = "../design/visual_block.png"
-START_MESSAGE_SEMANTIC = "../design/semantic_block.png"
-START_MESSAGE_AUDIO = "../design/audio_block.png"
+START_MESSAGE_VISUAL = "../design/visual_block.txt"
+START_MESSAGE_SEMANTIC = "../design/semantic_block.txt"
+START_MESSAGE_AUDIO = "../design/auditory_block.txt"
 #others
 SPEAKER_SYMBOL = "../design/speaker_symbol.png"
-FULLSCREEN = False # either True of False, should window be fullscreen.
+FULLSCREEN = True # either True of False, should window be fullscreen.
 #==================== Parameters for the choice task====================
-INTERSTIM_PERIOD = 1
+INTERSTIM_PERIOD = 0.2 
+STIM2_CHOICE_TIME = 0.2 # time for which fixation is shown after stim2 and choice.
 CHOICE_SCREEN_TIME = 2.5
-NTRIAL = 2
-MAX_OUTCOME = 20
+NTRIAL = 2 # number of trials per block.
+MAX_OUTCOME = 25
+NUMBER_FIXATION_DIST = 5 # distance between the numbers and the fixation cross
+AVERAGE_DELAY = 3 # time between trials, will be jittered for fmri.
+MESSAGE_DURATION = 1.5 # duration of the block message at the start of the block.
+FIXATION_AFTER_MESSAGE_DURATION = 0.5 # after the block message fixation is shown
+# for this time
 #========================================================================
+NPLAY = 2 # number of choices from each block to be played for 
+

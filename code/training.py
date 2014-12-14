@@ -92,7 +92,7 @@ class Training(object):
         self.dragon2 = None
         self.stimulus1 = None
         self.stimulus2 = None
-        self.start_message = None  #image to be shown at the start \
+        self.start_message = None  #text to be shown at the start \
                              # of the block, set by the concrete classes
 
         self.positive_feedback = visual.ImageStim(self.win, 
@@ -244,9 +244,10 @@ class Visual(Training):
         self.stimulus2 = visual.ImageStim(self.win, 
                                           image=STIM2_VISUAL,
                                           pos=(0, 0))
-        self.start_message = visual.ImageStim(self.win,
-                                              image=START_MESSAGE_VISUAL,
-                                              pos=(0, 0))
+        self.start_message = visual.TextStim(self.win,
+                                             text=open(START_MESSAGE_VISUAL).\
+                                             read().decode('utf-8'),
+                                             pos=(0, 0))
     
     def __str__(self):
         return "Visual"
@@ -256,7 +257,7 @@ class Visual(Training):
         stimulus.draw()
         self.fixation.draw()
         self.win.flip()
-        core.wait(STIMULUS_TIME)
+        core.wait(STIMULUS_DURATION)
     
     def _render_dragons(self, highlight=""):
         time = WAIT_TIME if highlight else 0
@@ -289,9 +290,10 @@ class Semantic(Training):
         self.stimulus2 = visual.TextStim(self.win, 
                                          text="CARNIVORE",
                                          pos=(0, 0))
-        self.start_message = visual.ImageStim(self.win,
-                                              image=START_MESSAGE_SEMANTIC,
-                                              pos=(0, 0))
+        self.start_message = visual.TextStim(self.win,
+                                             text=open(START_MESSAGE_SEMANTIC).\
+                                             read().decode('utf-8'),
+                                             pos=(0, 0))
     
     def __str__(self):
         return "Semantic"
@@ -300,7 +302,7 @@ class Semantic(Training):
         "render stimuls on the window"
         stimulus.draw()
         self.win.flip()
-        core.wait(STIMULUS_TIME)
+        core.wait(STIMULUS_DURATION)
     
     def _render_dragons(self, highlight=""):
         time = WAIT_TIME if highlight else 0
@@ -324,8 +326,9 @@ class Auditory(Training):
         self.dragon2 = mixer.Sound(AUDIO_DRAGON2)
         self.stimulus1 = mixer.Sound(STIM1_AUDIO)
         self.stimulus2 = mixer.Sound(STIM2_AUDIO)
-        self.start_message = visual.ImageStim(self.win,
-                                              image="../design/auditory_block.png",
+        self.start_message = visual.TextStim(self.win,
+                                             text=open(START_MESSAGE_AUDIO).\
+                                             read().decode('utf-8'),
                                               pos=(0, 0))
         self.speaker1 = visual.ImageStim(self.win,
                                     image=SPEAKER_SYMBOL,

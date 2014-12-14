@@ -1,3 +1,4 @@
+ # -*- coding: utf-8 -*-
 import random
 import time
 from psychopy import core, visual, event, sound
@@ -61,14 +62,20 @@ class ChoiceTask(object):
         trial."""
         self.start_message.draw()
         self.win.flip()
-        core.wait(WAIT_TIME)
+        core.wait(MESSAGE_DURATION)
+        self._show_fixation_only(FIXATION_AFTER_MESSAGE_DURATION)
         trials = [] # this will be stored in the data.
         for ntrial in range(NTRIAL):
             # show stimulie in random order.
             random_num = random.choice([1,2])
-            stims = [self.stimulus1, self.stimulus2]
-            if random_num == 2: stims.reverse()
-            self._show_stimulus(*stims)
+            if random_num == 1:
+                first, second = [self.stimulus1, self.stimulus2] 
+            else:
+                first, second = [self.stimulus2, self.stimulus1] 
+            self._show_stimulus(first)
+            self._show_fixation_only(INTERSTIM_PERIOD)
+            self._show_stimulus(second)
+            self._show_fixation_only(STIM2_CHOICE_TIME)
             # present the choices such that low outcome is at left(right)
             # if dominant stimululs appear first(second).
             low, high = get_outcomes(MAX_OUTCOME)
@@ -77,7 +84,7 @@ class ChoiceTask(object):
             else:
                 left, right = high, low
             key, reaction_time = self._present_choices(left, right)
-            self._show_inter_trial_win()
+            self._show_fixation_only(AVERAGE_DELAY)
             # save information of this trial.
             trial = {} 
             trial['first_stim'] = random_num
@@ -86,19 +93,18 @@ class ChoiceTask(object):
             trials.append(trial)
         return trials
     
-    def _show_inter_trial_win(self):
-        """show this window between trials."""
-        # if inter_trial_delay is too small then don't show, otherwise
+    def _show_fixation_only(self, duration):
+        # if duration is too small then don't draw, otherwise
         # it will be blurry.
         epsilon = 10**(-6)
-        if INTER_TRIAL_DELAY < epsilon: 
+        if duration < epsilon: 
             return None
         self.fixation.draw()
         self.win.flip()
-        core.wait(INTER_TRIAL_DELAY)
-
+        core.wait(duration)
+        
     @abstractmethod
-    def _show_stimulus(self, stim1, stim2):
+    def _show_stimulus(self, stim):
         """Concrete class will implement this."""
         return None
     
@@ -109,12 +115,13 @@ class ChoiceTask(object):
         then color the corresponding outcome. Returns the key pressed and
         the reaction time."""
         start_time = time.time()
+        dist = NUMBER_FIXATION_DIST
         left_outcome = visual.TextStim(self.win, 
                                        text=left,
-                                       pos=(-5, 0))
+                                       pos=(-dist, 0))
         right_outcome = visual.TextStim(self.win, 
                                         text=right,
-                                        pos=(5, 0))
+                                        pos=(dist, 0))
         self._render(left_outcome, right_outcome, self.fixation)
         try:
             key = event.waitKeys(maxWait=CHOICE_SCREEN_TIME,  
@@ -148,23 +155,21 @@ class Visual(ChoiceTask):
     def __init__(self, win, dominant_stimulus):
         ChoiceTask.__init__(self, win, dominant_stimulus)
         self.stimulus1 = visual.ImageStim(self.win, 
-                                          image=VISUAL_DRAGON1,
+                                          image=STIM1_VISUAL,
                                           pos=(0, 0))
         self.stimulus2 = visual.ImageStim(self.win, 
-                                          image=VISUAL_DRAGON2,
+                                          image=STIM2_VISUAL,
                                           pos=(0, 0))
         self.start_message = visual.TextStim(self.win,
-                                             text="Visual Block",
+                                             text="SEHEN",
                                              pos=(0, 0))
 
     def __str__(self):
         return "Visual"
  
-    def _show_stimulus(self, stim1, stim2):
-        self._render(stim1, self.fixation)
-        core.wait(INTERSTIM_PERIOD)
-        self._render(stim2, self.fixation)
-        core.wait(INTERSTIM_PERIOD)
+    def _show_stimulus(self, stim):
+        self._render(stim, self.fixation)
+        core.wait(STIMULUS_DURATION)
 
 
 class Semantic(ChoiceTask):
@@ -177,17 +182,15 @@ class Semantic(ChoiceTask):
                                          text="CARNIVORE",
                                          pos=(0, 0))
         self.start_message = visual.TextStim(self.win,
-                                             text="Semantic Block",
+                                             text="LESEN",
                                              pos=(0, 0))
 
     def __str__(self):
         return "Semantic"
         
-    def _show_stimulus(self, stim1, stim2):
-        self._render(stim1)
-        core.wait(INTERSTIM_PERIOD)
-        self._render(stim2)
-        core.wait(INTERSTIM_PERIOD)
+    def _show_stimulus(self, stim):
+        self._render(stim)
+        core.wait(STIMULUS_DURATION)
 
 
 class Auditory(ChoiceTask):
@@ -196,7 +199,7 @@ class Auditory(ChoiceTask):
         self.stimulus1 = mixer.Sound(STIM1_AUDIO)
         self.stimulus2 = mixer.Sound(STIM2_AUDIO)
         self.start_message = visual.TextStim(self.win,
-                                              text="Auditory Block",
+                                              text="HOREN",
                                               pos=(0, 0))
         self.speaker = visual.ImageStim(self.win,
                                         image=SPEAKER_SYMBOL,
@@ -206,13 +209,11 @@ class Auditory(ChoiceTask):
     def __str__(self):
         return "Auditory"
 
-    def _show_stimulus(self, stim1, stim2):
+    def _show_stimulus(self, stim):
         self.speaker.draw()
         self.win.flip()
-        stim1.play()
-        time.sleep(INTERSTIM_PERIOD)
-        stim2.play()
-        time.sleep(INTERSTIM_PERIOD)
+        stim.play()
+        time.sleep(STIMULUS_DURATION)
 
     
 if __name__ == "__main__":
