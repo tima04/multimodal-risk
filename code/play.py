@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 import random
 import time
 import training
@@ -31,11 +32,10 @@ def main():
             data['choices'][str(block)][i]['correctp'] = corrects[i]
     data['finish_time'] = timestamp()
     save_data(data)
-    txt = "You win 10 percent of Euro %s."%data['total_win']
+    txt = u"You win 10 percent of \u20AC %s."%data['total_win']
     visual.TextStim(win, text=txt, pos=(0,0)).draw()
     win.flip()
     event.waitKeys()
-    print data
 
 
 class Play(training.Training):
@@ -60,7 +60,7 @@ class Play(training.Training):
         return corrects
     
     def show_choice_info(self, choice):
-        txt = " Correct classification in the next %s task will win you Euro %s. Please press any key to continue"%(self.__str__().lower(), choice['amount'])
+        txt = u"Correct classification in the next %s task will win you \u20AC%s. Please press any key to continue"%(self.__str__().lower(), choice['amount'])
 
         visual.TextStim(self.win, text=txt, pos=(0, 0)).draw()
         self.win.flip()

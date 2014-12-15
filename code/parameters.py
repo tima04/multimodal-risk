@@ -10,9 +10,9 @@ WAIT_TIME = 0.5 # All other waiting times like time till which feedback is shown
 # if in the last ntest trial proportion of
 # accurate choices is more then min_accuracy 
 #then learning phase is over.
-NTEST, MIN_ACCURACY = 10, 0.7
+NTEST, MIN_ACCURACY = 10, 0.8
 
-MAX_TRIAL = 4 # if subject has not learned by max_trial then give up on him or her.
+MAX_TRIAL = 8 # if subject has not learned by max_trial then give up on him or her.
 MAX_STREAK = 5 # maximum number of times a stimulus can appear in a row.
 INTER_TRIAL_DELAY = 0.5
 
@@ -35,18 +35,17 @@ START_MESSAGE_SEMANTIC = "../design/semantic_block.txt"
 START_MESSAGE_AUDIO = "../design/auditory_block.txt"
 #others
 SPEAKER_SYMBOL = "../design/speaker_symbol.png"
-FULLSCREEN = True # either True of False, should window be fullscreen.
+FULLSCREEN = False # either True of False, should window be fullscreen.
 #==================== Parameters for the choice task====================
 INTERSTIM_PERIOD = 0.2 
 STIM2_CHOICE_TIME = 0.2 # time for which fixation is shown after stim2 and choice.
-CHOICE_SCREEN_TIME = 2.5
-NTRIAL = 2 # number of trials per block.
+CHOICE_SCREEN_TIME = 2.5 
+NTRIAL = 10 # number of trials per block.
 MAX_OUTCOME = 25
 NUMBER_FIXATION_DIST = 5 # distance between the numbers and the fixation cross
-AVERAGE_DELAY = 3 # time between trials, will be jittered for fmri.
+AVERAGE_DELAY = 1 # time between trials, will be jittered for fmri.
 MESSAGE_DURATION = 1.5 # duration of the block message at the start of the block.
 FIXATION_AFTER_MESSAGE_DURATION = 0.5 # after the block message fixation is shown
 # for this time
 #========================================================================
 NPLAY = 2 # number of choices from each block to be played for 
-

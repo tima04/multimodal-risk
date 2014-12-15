@@ -55,6 +55,7 @@ def main():
     for block in blocks:
         rslt = block.start_trial()
         data[str(block)] = rslt
+        save_data(data, partial=True)
 
     data['finish_time'] = timestamp()
     save_data(data)
@@ -86,7 +87,12 @@ class Training(object):
                 MAX_PROB_CORRECT_CLAASIFICATION_GIVEN_DOMINANT_STIM
         self.prob_drg2_given_stim1 = 1 - self.prob_drg1_given_stim1
         self.prob_drg1_given_stim2 = 1 - self.prob_drg2_given_stim2
-
+        # feedback generators, generate random binary numbers but even for small
+        # sample estimated probabilities stay close to true probabilities.
+        self.stim1_feedback_gen = random_binary_generator(self.prob_drg1_given_stim1,
+                                                          k=4)
+        self.stim2_feedback_gen = random_binary_generator(self.prob_drg2_given_stim2,
+                                                          k=4)
         # Following are defined in concrete classes.
         self.dragon1 = None
         self.dragon2 = None
@@ -208,16 +214,16 @@ class Training(object):
         return (key, time.time() - start_time)
      
     def _give_feedback(self, key, stimulus):
-        # check the correctness of the user's choice
         if stimulus == 1:
-            chance_correct = self.prob_drg1_given_stim1 if key == 'left' else \
-                             self.prob_drg2_given_stim1
+            random_num = self.stim1_feedback_gen()
+            correctp = random_num if key == "left" else 1 - random_num
+            optimal = (key == "left")
         else:
-            chance_correct = self.prob_drg1_given_stim2 if key == "left" else \
-                             self.prob_drg2_given_stim2
-        
-        self.optimals.append(chance_correct > 0.5)
-        correctp = (chance_correct > random.uniform(0, 1))
+            random_num = self.stim2_feedback_gen()
+            correctp = random_num if key == "right" else 1 - random_num
+            optimal = (key == "right")
+
+        self.optimals.append(optimal)
 
         # give the feedback
         self.positive_feedback.draw() if correctp else \

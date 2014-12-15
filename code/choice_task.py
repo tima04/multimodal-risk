@@ -54,7 +54,7 @@ class ChoiceTask(object):
         self.stimulus1 = ""
         self.stimulus2 = ""
         self.start_message = ""
-        self.dominant_stimulus = dominant_stimulus
+        self.dominant_stimulus = int(dominant_stimulus)
 
     def start_block(self):
         """This is the public method of the class. Returns
@@ -117,10 +117,10 @@ class ChoiceTask(object):
         start_time = time.time()
         dist = NUMBER_FIXATION_DIST
         left_outcome = visual.TextStim(self.win, 
-                                       text=left,
+                                       text=u"\u20AC" + str(left) ,
                                        pos=(-dist, 0))
         right_outcome = visual.TextStim(self.win, 
-                                        text=right,
+                                        text=u"\u20AC" + str(right),
                                         pos=(dist, 0))
         self._render(left_outcome, right_outcome, self.fixation)
         try:
