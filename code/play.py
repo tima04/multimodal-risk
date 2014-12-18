@@ -18,7 +18,7 @@ def main():
     win = visual.Window([800, 600], allowGUI=True, units='deg',
                         color = "grey",fullscr=FULLSCREEN, monitor="testMonitor")
     dominant_stimulie = get_dominant_stimulie(data['id'])
-    choices = random_choices(data['id'], NPLAY)
+    choices = random_choices4play(data['id'], NPLAY)
     blocks =  [Visual(win, dominant_stimulie[0], choices["Visual"]),
                Auditory(win, dominant_stimulie[1], choices["Auditory"]), 
                Semantic(win, dominant_stimulie[1], choices["Semantic"])]

@@ -27,8 +27,9 @@ def main():
     mixer.init()
 
     blocks = [Visual(win, dominants[0]), 
-              Semantic(win, dominants[1]), 
-              Auditory(win, dominants[2])]
+              Auditory(win, dominants[1]),
+              Semantic(win, dominants[2])] 
+              
     random.shuffle(blocks)
     for block in blocks:
         # start the block and store the return value in data.
@@ -36,6 +37,7 @@ def main():
 
     data['finish_time'] = timestamp()
     save_data(data)
+    SummaryChoiceData(data).main() # generate the summary of choice data
 
 
 class ChoiceTask(object):
@@ -55,11 +57,14 @@ class ChoiceTask(object):
         self.stimulus2 = ""
         self.start_message = ""
         self.dominant_stimulus = int(dominant_stimulus)
+        # random num to determine which stim appears first.
+        self.random_num_gen = random_binary_generator(0.5, k=4)
 
     def start_block(self):
-        """This is the public method of the class. Returns
-        a list trials, elements of which contain data from each
-        trial."""
+        """This is the public method of the class. Returns a dictionary
+        which has keys start_time, finish_time and a list trials, elements 
+        of which contain data from each trial."""
+        rslt = {'start_time': timestamp()} 
         self.start_message.draw()
         self.win.flip()
         core.wait(MESSAGE_DURATION)
@@ -67,7 +72,8 @@ class ChoiceTask(object):
         trials = [] # this will be stored in the data.
         for ntrial in range(NTRIAL):
             # show stimulie in random order.
-            random_num = random.choice([1,2])
+            start_time = time.time()
+            random_num = self.random_num_gen() + 1
             if random_num == 1:
                 first, second = [self.stimulus1, self.stimulus2] 
             else:
@@ -89,9 +95,12 @@ class ChoiceTask(object):
             trial = {} 
             trial['first_stim'] = random_num
             trial['left_outcome'], trial['right_outcome'] = left, right
-            trial['key'], trial['time'] = key, reaction_time
+            trial['key'], trial['reaction_time'] = key, reaction_time
+            trial['time'] = time.time() - start_time
             trials.append(trial)
-        return trials
+        rslt['trials'] = trials
+        rslt['finish_time'] = timestamp()
+        return rslt
     
     def _show_fixation_only(self, duration):
         # if duration is too small then don't draw, otherwise
@@ -137,10 +146,10 @@ class ChoiceTask(object):
         elif key == "escape":
             self.win.close()
             core.quit()
-        #if the key pressed then show it in yellow for the remaining time
+        #if a key is pressed then show it in yellow for the remaining time.
         if key != 'none':
             self._render(left_outcome, right_outcome, self.fixation)
-            time_elasped = start_time - time.time()
+            time_elasped = time.time() - start_time
             core.wait(CHOICE_SCREEN_TIME - time_elasped)
         
         return key, reaction_time

@@ -89,10 +89,9 @@ class Training(object):
         self.prob_drg1_given_stim2 = 1 - self.prob_drg2_given_stim2
         # feedback generators, generate random binary numbers but even for small
         # sample estimated probabilities stay close to true probabilities.
-        self.stim1_feedback_gen = random_binary_generator(self.prob_drg1_given_stim1,
-                                                          k=4)
-        self.stim2_feedback_gen = random_binary_generator(self.prob_drg2_given_stim2,
-                                                          k=4)
+        self.stim1_feedback_gen = random_binary_generator(self.prob_drg1_given_stim1, k=K)
+        self.stim2_feedback_gen = random_binary_generator(self.prob_drg2_given_stim2, k=K)
+        self.stim_gen = random_binary_generator(0.5, k=K)
         # Following are defined in concrete classes.
         self.dragon1 = None
         self.dragon2 = None
@@ -130,7 +129,7 @@ class Training(object):
 
         # start the training
         for ntrial in range(MAX_TRIAL):
-            stimulus = self._choose_stimulus(trials)
+            stimulus = self._choose_stimulus()
             if stimulus == 1:
                 self._render_stimulus(self.stimulus1)
             else:
@@ -170,19 +169,23 @@ class Training(object):
         else:
             return sum(self.optimals[-NTEST:-1]) / float(NTEST)
     
-    def _choose_stimulus(self, trials):
-        """If in the last MAX_TRIAL, only one stimulus appeared then pick the
-        other one else randomly pick one of them. Return 1 if stimuls 
-        1 is picked 2 otherwise."""
-        stim = None
-        # check if in the last MAX_TRIAL same stim is picked, pick a different
-        # one in that case otherwise pick randomly.
-        if len(trials) >= MAX_STREAK:
-            stims = [trial['stim'] for trial in trials[-MAX_STREAK:]]
-            if len(set(stims)) == 1:
-                stim = 1 if 2 in stims else 2
-        stim = random.choice([1,2]) if not stim else stim
-        return stim
+    # def _choose_stimulus(self, trials):
+    #     """If in the last MAX_TRIAL, only one stimulus appeared then pick the
+    #     other one else randomly pick one of them. Return 1 if stimuls 
+    #     1 is picked 2 otherwise."""
+    #     stim = None
+    #     # check if in the last MAX_TRIAL same stim is picked, pick a different
+    #     # one in that case otherwise pick randomly.
+    #     if len(trials) >= MAX_STREAK:
+    #         stims = [trial['stim'] for trial in trials[-MAX_STREAK:]]
+    #         if len(set(stims)) == 1:
+    #             stim = 1 if 2 in stims else 2
+    #     stim = random.choice([1,2]) if not stim else stim
+    #     return stim
+    
+    def _choose_stimulus(self):
+        return self.stim_gen() + 1
+
         
     @abstractmethod
     def _render_stimulus(self, stimulus):
