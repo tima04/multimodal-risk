@@ -266,7 +266,7 @@ class Visual(Training):
         stimulus.draw()
         self.fixation.draw()
         self.win.flip()
-        core.wait(STIMULUS_DURATION)
+        core.wait(STIM_DUR)
     
     def _render_dragons(self, highlight=""):
         time = WAIT_TIME if highlight else 0
@@ -311,7 +311,7 @@ class Semantic(Training):
         "render stimuls on the window"
         stimulus.draw()
         self.win.flip()
-        core.wait(STIMULUS_DURATION)
+        core.wait(STIM_DUR)
     
     def _render_dragons(self, highlight=""):
         time = WAIT_TIME if highlight else 0

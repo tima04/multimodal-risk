@@ -13,12 +13,14 @@ def main():
     info = dialog_box(choice_task=True)
     if not info: # user pressed cancel
         return None
+
     data['id'], data['run'] = info
 
     #require to calculate outcome of lotteries.
     dominants  = get_dominant_stimulie(data['id']) 
+    data["dominant_stimulie"] = dominants
 
-    win = visual.Window([800, 600], 
+    win = visual.Window([400, 300], 
                         allowGUI=True, 
                         monitor='testMonitor', 
                         units='deg',
@@ -28,12 +30,22 @@ def main():
 
     blocks = [Visual(win, dominants[0]), 
               Auditory(win, dominants[1]),
-              Semantic(win, dominants[2])] 
-              
+              Semantic(win, dominants[2])]
     random.shuffle(blocks)
+    data['block_order'] = [str(block) for block in blocks]
+
+    # show the fixation and wait for the scanner trigger key
+    fixation = visual.TextStim(win, text="+", pos=(0, 0))
+    fixation.draw()
+    win.flip()
+    event.waitKeys(keyList=SCANNER_PULSE_KEYS)
+    data["scanner_trigger_time"] = time.time()
+
     for block in blocks:
-        # start the block and store the return value in data.
+        # start the block and store the return value in data, and save
+        # partial data to insure against a crash
         data[str(block)] = block.start_block()
+        save_data(data, partial=True) 
 
     data['finish_time'] = timestamp()
     save_data(data)
@@ -51,55 +63,84 @@ class ChoiceTask(object):
     @abstractmethod
     def __init__(self, win, dominant_stimulus):
         self.win = win
-        self.fixation = visual.TextStim(self.win, text="+", pos=(0, 0))
+        self.fixation = visual.TextStim(self.win, text="+", pos=(0, 0), color="black")
+        self.slow_down_msg = visual.ImageStim(self.win, image=SLOW_DOWN_SYMBOL)
+        self.too_slow_msg = visual.ImageStim(self.win, image=TOO_LATE_SYMBOL)
+        self.random_num_gen = random_binary_generator(0.5, k=4)
         # Concrete classes will define following attributes.
         self.stimulus1 = ""
         self.stimulus2 = ""
         self.start_message = ""
         self.dominant_stimulus = int(dominant_stimulus)
         # random num to determine which stim appears first.
-        self.random_num_gen = random_binary_generator(0.5, k=4)
 
     def start_block(self):
         """This is the public method of the class. Returns a dictionary
         which has keys start_time, finish_time and a list trials, elements 
         of which contain data from each trial."""
-        rslt = {'start_time': timestamp()} 
+        rslt = {'start_time': time.time()}
+        jitter_delays = Delay(isfmri=IS_FMRI, ntrial=NTRIAL)
+
+        rslt['start_message_event'] = time.time()
         self.start_message.draw()
         self.win.flip()
-        core.wait(MESSAGE_DURATION)
-        self._show_fixation_only(FIXATION_AFTER_MESSAGE_DURATION)
+        core.wait(MESSAGE_DUR)
+
+        rslt['fixation_after_message_duration_event'] = time.time()
+        self._show_fixation_only(FIXATION_AFTER_MESSAGE_DUR)
+
         trials = [] # this will be stored in the data.
         for ntrial in range(NTRIAL):
+            trial = {} # info about this trial.
+            trial['trial_start_event'] = time.time()
+
+            # jitter fixation at a begining of a trial
+            trial['first_jitter_fixation_event'] = time.time()
+            self._show_fixation_only(jitter_delays.next())
+            
             # show stimulie in random order.
-            start_time = time.time()
             random_num = self.random_num_gen() + 1
             if random_num == 1:
-                first, second = [self.stimulus1, self.stimulus2] 
+                first, second = [self.stimulus1, self.stimulus2]
             else:
-                first, second = [self.stimulus2, self.stimulus1] 
+                first, second = [self.stimulus2, self.stimulus1]
+            
+            trial['first_stim_event'] = time.time()
             self._show_stimulus(first)
+            
+            trial['fixation_after_first_stim_event'] = time.time()
             self._show_fixation_only(INTERSTIM_PERIOD)
+            
+            trial['second_stim_event'] = time.time()
             self._show_stimulus(second)
-            self._show_fixation_only(STIM2_CHOICE_TIME)
+            
+            trial['jitter_fixation_after_second_stim_event'] = time.time()
+            self._show_fixation_only(jitter_delays.next()) 
+
             # present the choices such that low outcome is at left(right)
-            # if dominant stimululs appear first(second).
+            # if dominant stimululs appear first(second). (Todo: high sometime goes with dominant)
             low, high = get_outcomes(MAX_OUTCOME)
             if random_num == self.dominant_stimulus: # dominant stimulus appeared first
                 left, right = low, high
             else:
                 left, right = high, low
-            key, reaction_time = self._present_choices(left, right)
-            self._show_fixation_only(AVERAGE_DELAY)
+
+            trial['choice_screen_event'] = time.time()
+            key = self._present_choices(left, right, trial)
+
             # save information of this trial.
-            trial = {} 
             trial['first_stim'] = random_num
             trial['left_outcome'], trial['right_outcome'] = left, right
-            trial['key'], trial['reaction_time'] = key, reaction_time
-            trial['time'] = time.time() - start_time
+            trial['key'] = key
+            trial['trial_finish_event'] = time.time()
             trials.append(trial)
+            # adjust the next jitter times, 
+            excess_dur = jitter_delays.adjust(time.time() - 
+                                                   trial['trial_start_event'])
+        # at the end of the block show fixation for last trial excess_dur
+        self._show_fixation_only(excess_dur)
         rslt['trials'] = trials
-        rslt['finish_time'] = timestamp()
+        rslt['finish_time'] = time.time()
         return rslt
     
     def _show_fixation_only(self, duration):
@@ -117,48 +158,77 @@ class ChoiceTask(object):
         """Concrete class will implement this."""
         return None
     
-    def _present_choices(self, left, right):
+    def _present_choices(self, oleft, oright, trial):
         """Present the left and the right outcomes, first at the left
-        and second at the right of fixation. Keep the choice screen for
-        choice_screen_time time, if the user pressed  a left or right key
-        then color the corresponding outcome. Returns the key pressed and
-        the reaction time."""
+        and second at the right of fixation. After choice_screen_dur
+        fixation cross is colored red for choice_screen_dur2, user has 
+        to respond while the cross is red. If user respond before or after
+        then show the slow-down or too-slow message, otherwise color the
+        outcome pressed yellow for remaining duration. Store all the
+        events in dictionary trial, which is an argument to the method.
+        Return value is the key pressed."""
+        trial['success'] = False # set to True if user responded on time.
         start_time = time.time()
         dist = NUMBER_FIXATION_DIST
         left_outcome = visual.TextStim(self.win, 
-                                       text=u"\u20AC" + str(left) ,
+                                       text=u"\u20AC" + str(oleft) ,
                                        pos=(-dist, 0))
         right_outcome = visual.TextStim(self.win, 
-                                        text=u"\u20AC" + str(right),
+                                        text=u"\u20AC" + str(oright),
                                         pos=(dist, 0))
         self._render(left_outcome, right_outcome, self.fixation)
+        # wait for choice_screen_dur and check if user presses left or right key
         try:
-            key = event.waitKeys(maxWait=CHOICE_SCREEN_TIME,  
-                                 keyList=["left", "right", "escape"])[0]
+            key = event.waitKeys(maxWait=CHOICE_SCREEN_DUR,
+                                 keyList=[LEFT_KEY, RIGHT_KEY, ESC_KEY])[0]
         except:
             key = "none"
-        reaction_time = time.time() - start_time
-
-        if key == "left":
-            left_outcome.color = "yellow"
-        elif key == "right":
-            right_outcome.color = "yellow"
-        elif key == "escape":
+        #usr responded too early show her slow down message and return
+        if key in [LEFT_KEY, RIGHT_KEY]:
+            trial['slow_down_msg_event'] = time.time()
+            trial['too_fast'] = True
+            self._render(self.slow_down_msg, duration=SLOW_DOWN_MSG_DUR)
+            return key
+        if key == ESC_KEY:
             self.win.close()
             core.quit()
-        #if a key is pressed then show it in yellow for the remaining time.
-        if key != 'none':
-            self._render(left_outcome, right_outcome, self.fixation)
-            time_elasped = time.time() - start_time
-            core.wait(CHOICE_SCREEN_TIME - time_elasped)
-        
-        return key, reaction_time
+        # turn the fixation cross red and wait for 1 sec for a user to respond
+        trial['fixation_color_red_event'] = time.time()
+        self.fixation.color = "red"
+        self._render(left_outcome, right_outcome, self.fixation)
+        try:
+            key = event.waitKeys(maxWait=CHOICE_SCREEN_DUR2,
+                                 keyList=[LEFT_KEY, RIGHT_KEY])[0]
+            trial['key_pressed_event'] = time.time()
+        except:
+            key = "none"
+        self.fixation.color = "black"
+        # user did not responded, show too slow msg and return.
+        if key == "none":
+            trial['too_slow'] = True
+            trial['too_slow_msg_event'] = time.time()
+            self._render(self.too_slow_msg, duration=TOO_SLOW_MSG_DUR)
+            return key
+        #show the pressed key in yellow for the remaining time.
+        if key == LEFT_KEY:
+            left_outcome.color = "yellow"
+        elif key == RIGHT_KEY:
+            right_outcome.color = "yellow"
+        self._render(left_outcome, right_outcome, self.fixation)
+        time_elasped = time.time() - start_time
+        core.wait(CHOICE_SCREEN_DUR + CHOICE_SCREEN_DUR2 - time_elasped)
+        return key
 
-    def _render(self, *args):
+    def _render(self, *args, **kwargs):
+        """kwargs if present then must be
+        a dict with the key 'duration' and value float."""
+        assert (not kwargs) or kwargs.get('duration')
+        epsilon = 10**-6
         for arg in args:
             arg.draw()
         self.win.flip()
-
+        if kwargs:
+            core.wait(kwargs['duration'])
 
 class Visual(ChoiceTask):
     def __init__(self, win, dominant_stimulus):
@@ -178,7 +248,7 @@ class Visual(ChoiceTask):
  
     def _show_stimulus(self, stim):
         self._render(stim, self.fixation)
-        core.wait(STIMULUS_DURATION)
+        core.wait(STIM_DUR)
 
 
 class Semantic(ChoiceTask):
@@ -199,7 +269,7 @@ class Semantic(ChoiceTask):
         
     def _show_stimulus(self, stim):
         self._render(stim)
-        core.wait(STIMULUS_DURATION)
+        core.wait(STIM_DUR)
 
 
 class Auditory(ChoiceTask):
@@ -222,8 +292,25 @@ class Auditory(ChoiceTask):
         self.speaker.draw()
         self.win.flip()
         stim.play()
-        time.sleep(STIMULUS_DURATION)
+        time.sleep(STIM_DUR)
 
     
 if __name__ == "__main__":
     main()
+
+def foo(*args, **kwargs):
+    for arg in args:
+        print 'arg is %s'%arg
+    print kwargs.keys()
+    for k in kwargs:
+        print 'value is %s'%kwargs[k]
+
+
+def foo(n, recur=True): 
+    st = time.time()
+    rslt = []
+    for i in range(n):
+        bar = sim_jitter_delays2() if recur else sim_jitter_delays
+        dur = time.time() - st
+        rslt.append(dur)
+    return rslt
