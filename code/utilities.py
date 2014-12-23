@@ -213,6 +213,8 @@ class SummaryChoiceData(object):
             rslt += "EVS: {0} \t   {1}\n".format(pleft*oleft, pright*oright)
             rslt += "choice: %s\n"%trial['key']
             rslt += "first_stim: %s\n"%trial['first_stim']
+            rslt += "Is High EV gap? %s\n"%trial['is_high']
+            rslt += "Is One lottery stochatiscally dominant? %s\n"%trial['is_sd']
         return rslt
 
 
@@ -231,12 +233,6 @@ class Delay(object):
     floats = lambda xs: [float(x) for x in xs.split(",")] # "4.0, 2.34\n" => [4.0, 2.34]
     jitter_high = map(floats, jitter_high)
     jitter_low = map(floats, jitter_low)
-    ##testing
-    def foo(x):
-        time.sleep(0)
-        return x
-    foo = foo(15)
-    #############
 
     def __init__(self, is_fmri=True, trial_fixed_dur=4.5, behavioral_delay=1):
         """if is_fmri is true then behavioral_delay is ignored."""
@@ -253,8 +249,14 @@ class Delay(object):
     def next(self, is_high=True):
         assert is_high in [True, False]
         if not self.is_fmri: 
-            return delays[0]
-        rslt = self.delays[is_high][self.counter[is_high]]
+            return self.delays[0]
+
+        try:
+            rslt = self.delays[is_high][self.counter[is_high]]
+        except IndexError: 
+            self.counter[is_high] = 0 
+            rslt = self.delays[is_high][self.counter[is_high]]
+
         self.counter[is_high] += 1
         self.last, self.current = self.current, rslt
         return round(rslt, 2)
@@ -288,19 +290,61 @@ class Outcomes(object):
     outcomes = np.loadtxt(os.path.join(design_dir, file_name), 
                           dtype= float, delimiter=",")
                           
-    def __init__(self, is_fmri=True):
+    def __init__(self, is_fmri=True, max_outcome=25):
+        """max_outcome is ignored if is_fmri is True"""
         random_order = range(0, Outcomes.outcomes.shape[0])
         random.shuffle(random_order)
         self.outcomes = Outcomes.outcomes[random_order,:]
         self.counter = 0
         self.is_fmri = is_fmri
+        self.max_outcome = max_outcome
     
     def next(self): 
         if not self.is_fmri:
-            return (20, 10, 0, 0) # Todo need fixing here.
+            return self._get_outcomes(self.max_outcome)
         rslt = self.outcomes[self.counter]
         self.counter += 1
         return [round(x, 2) for x in rslt]
+
+    def _get_outcomes(self, max_outcome):
+        """Return a tuple (low, high), s.t 0 < low < high <= max_outcome.
+        Subject will be given a choice between gambles low with 85% vs high with 65%.
+        Constraints:
+        1. 50% of the times high EV is associated with 85% chance and rest of the times
+        with 65% times.
+        2. 50% of the times EV of both the gambles is low, as well Del(EV) is also low.
+        other 50% of the gambles should have Del(EV) high as well as one outcome
+        is closer to max_outcome.
+        3. The priority heuristic always chooses low with 85% over high with 65%, so
+        choose (low, high) s.t EV of later is higher, to compare the two models.
+        
+        All 3 constraints can not be met, for a while (low, high) are such that, 20% of
+        times ev ratio is high and 80% low, if ev ratio is low then 50% of times, higher
+        ev is associated with weaker stim and 50% with dominant stim."""
+        high_ev = 0.2 # proportion of trial with high ev ratio
+        # higher ev ratio case
+        # high is within 90% of max_outcome and low is 1/3 to 1/2 of high,
+        # so ev ratio is between 1.5 to 2.3
+        is_high = False
+        is_sd = False
+        if random.uniform(0, 1) < high_ev: 
+            is_high = True
+            high = random.choice(range(int(0.9*max_outcome), 
+                                       max_outcome+1))
+            low = random.choice(range(int(high/3.0), int(high/2.0)+1))
+            return (low, high, is_sd, is_high)
+            
+        # lower ev ratio case, high is high is between 50% to 80% of max
+        high = random.choice(range(int(0.5*max_outcome), 
+                                   int(0.8*max_outcome)+1))
+        # case 1, higer ev is associated with dominant stim
+        # i.e 0.85 * low > 0.65 * high, i.e low > 0.76*high
+        if random.uniform(0, 1) < 0.5:
+            low = random.choice(range(int(0.76*high), high))
+        else: # case 2, higher ev is associated with weaker stim
+            low = random.choice(range(int(0.6*high), int(0.76*high)+1))
+        return (low, high, is_sd, is_high)
+
 
 
 def sim_jitter_delays(n=28, mean=2.5, min_=1.5, max_=7.5):
@@ -318,40 +362,4 @@ def sim_jitter_delays(n=28, mean=2.5, min_=1.5, max_=7.5):
             return rslt
 
         
-def get_outcomes(self, max_outcome):
-    """Return a tuple (low, high), s.t 0 < low < high <= max_outcome.
-    Subject will be given a choice between gambles low with 85% vs high with 65%.
-    Constraints:
-    1. 50% of the times high EV is associated with 85% chance and rest of the times
-    with 65% times.
-    2. 50% of the times EV of both the gambles is low, as well Del(EV) is also low.
-    other 50% of the gambles should have Del(EV) high as well as one outcome
-    is closer to max_outcome.
-    3. The priority heuristic always chooses low with 85% over high with 65%, so
-    choose (low, high) s.t EV of later is higher, to compare the two models.
-   
-    All 3 constraints can not be met, for a while (low, high) are such that, 20% of
-    times ev ratio is high and 80% low, if ev ratio is low then 50% of times, higher
-    ev is associated with weaker stim and 50% with dominant stim."""
-    high_ev = 0.2 # proportion of trial with high ev ratio
-
-    # higher ev ratio case
-    # high is within 90% of max_outcome and low is 1/3 to 1/2 of high,
-    # so ev ratio is between 1.5 to 2.3
-    if random.uniform(0, 1) < high_ev: 
-        high = random.choice(range(int(0.9*max_outcome), 
-                                   max_outcome+1))
-        low = random.choice(range(int(high/3.0), int(high/2.0)+1))
-        return (low, high)
-
-    # lower ev ratio case, high is high is between 50% to 80% of max
-    high = random.choice(range(int(0.5*max_outcome), 
-                               int(0.8*max_outcome)+1))
-    # case1, higer ev is associated with dominant stim
-    # i.e 0.85 * low > 0.65 * high, i.e low > 0.76*high
-    if random.uniform(0, 1) < 0.5:
-        low = random.choice(range(int(0.76*high), high))
-    else: # case 2, higher ev is associated with weaker stim
-        low = random.choice(range(int(0.6*high), int(0.76*high)+1))
-    return low, high
     

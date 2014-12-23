@@ -11,19 +11,19 @@ def main():
     data = {'start_time': timestamp()}
     
     if IS_FMRI:
-        assert NTRIAL == 28, "nrial not 28 for fmri choice task"
+        assert NTRIAL == 28, "number of trial should be 28 for fmri choice task"
 
     # preload Delay and Outcomes class, 
     Delay()
     Outcomes()
 
 
-    # info = dialog_box(choice_task=True)
-    # if not info: # user pressed cancel
-    #     return None
+    info = dialog_box(choice_task=True)
+    if not info: # user pressed cancel
+        return None
 
-    # data['id'], data['run'] = info
-    data['id'], data['run'] = (1, 1)
+    data['id'], data['run'] = info
+
 
     #require to calculate outcome of lotteries.
     dominants  = get_dominant_stimulie(data['id']) 
@@ -93,7 +93,7 @@ class ChoiceTask(object):
                           CHOICE_SCREEN_DUR2
         rslt = {'start_time': time.time()}
         jitter_delay = Delay(IS_FMRI, trial_fixed_dur)
-        outcomes = Outcomes(is_fmri=IS_FMRI)
+        outcomes = Outcomes(IS_FMRI, MAX_OUTCOME)
 
         rslt['start_message_event'] = time.time()
         self.start_message.draw()

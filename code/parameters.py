@@ -67,10 +67,10 @@ ESC_KEY = "escape"
 
 #                    3: Others:
 #                    ----------
-
+IS_FMRI = True # if this is true then make sure that NTRIAL is 28
 NTRIAL = 28 # number of trials per block.
 MAX_OUTCOME = 25
 NPLAY = 2 # number of choices from each block to be played for 
 K = 3 # second argument of the function utilities.random_bianry_generator
 NUMBER_FIXATION_DIST = 5 # distance between the numbers and the fixation cross
-IS_FMRI = True # if this is true then ensure that NTRIAL is 28
+
