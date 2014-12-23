@@ -10,17 +10,26 @@ from parameters import *
 def main():
     data = {'start_time': timestamp()}
     
-    info = dialog_box(choice_task=True)
-    if not info: # user pressed cancel
-        return None
+    if IS_FMRI:
+        assert NTRIAL == 28, "nrial not 28 for fmri choice task"
 
-    data['id'], data['run'] = info
+    # preload Delay and Outcomes class, 
+    Delay()
+    Outcomes()
+
+
+    # info = dialog_box(choice_task=True)
+    # if not info: # user pressed cancel
+    #     return None
+
+    # data['id'], data['run'] = info
+    data['id'], data['run'] = (1, 1)
 
     #require to calculate outcome of lotteries.
     dominants  = get_dominant_stimulie(data['id']) 
     data["dominant_stimulie"] = dominants
 
-    win = visual.Window([400, 300], 
+    win = visual.Window([800, 600], 
                         allowGUI=True, 
                         monitor='testMonitor', 
                         units='deg',
@@ -66,20 +75,25 @@ class ChoiceTask(object):
         self.fixation = visual.TextStim(self.win, text="+", pos=(0, 0), color="black")
         self.slow_down_msg = visual.ImageStim(self.win, image=SLOW_DOWN_SYMBOL)
         self.too_slow_msg = visual.ImageStim(self.win, image=TOO_LATE_SYMBOL)
+        self.dominant_stimulus = int(dominant_stimulus)
+        # random num to determine which stim appears first.
         self.random_num_gen = random_binary_generator(0.5, k=4)
         # Concrete classes will define following attributes.
         self.stimulus1 = ""
         self.stimulus2 = ""
         self.start_message = ""
-        self.dominant_stimulus = int(dominant_stimulus)
-        # random num to determine which stim appears first.
 
     def start_block(self):
         """This is the public method of the class. Returns a dictionary
         which has keys start_time, finish_time and a list trials, elements 
         of which contain data from each trial."""
+        # trial durarion is sum of fixed and jittered durations. Fixed duration 
+        # can vary if subject respond too early or too late. 
+        trial_fixed_dur = 2 * STIM_DUR + INTERSTIM_PERIOD + CHOICE_SCREEN_DUR + \
+                          CHOICE_SCREEN_DUR2
         rslt = {'start_time': time.time()}
-        jitter_delays = Delay(isfmri=IS_FMRI, ntrial=NTRIAL)
+        jitter_delay = Delay(IS_FMRI, trial_fixed_dur)
+        outcomes = Outcomes(is_fmri=IS_FMRI)
 
         rslt['start_message_event'] = time.time()
         self.start_message.draw()
@@ -91,12 +105,15 @@ class ChoiceTask(object):
 
         trials = [] # this will be stored in the data.
         for ntrial in range(NTRIAL):
-            trial = {} # info about this trial.
+            o1, o2, is_sd, is_high = outcomes.next()
+            is_sd, is_high = map(int, [is_sd, is_high]) #just to make sure, they \
+                             # are int
+            trial = {} # info about this trial, will be stored in this dict.
             trial['trial_start_event'] = time.time()
-
+            
             # jitter fixation at a begining of a trial
             trial['first_jitter_fixation_event'] = time.time()
-            self._show_fixation_only(jitter_delays.next())
+            self._show_fixation_only(jitter_delay.next(is_high))
             
             # show stimulie in random order.
             random_num = self.random_num_gen() + 1
@@ -115,28 +132,32 @@ class ChoiceTask(object):
             self._show_stimulus(second)
             
             trial['jitter_fixation_after_second_stim_event'] = time.time()
-            self._show_fixation_only(jitter_delays.next()) 
+            self._show_fixation_only(jitter_delay.next()) 
 
-            # present the choices such that low outcome is at left(right)
-            # if dominant stimululs appear first(second). (Todo: high sometime goes with dominant)
-            low, high = get_outcomes(MAX_OUTCOME)
+            # present the choices such that low outcome is at left(right), \
+            # upon whether order of dominant_stimulus and if the lottery
+            # is supposed to be stochastic dominance.
+            low, high = min(o1, o2), max(o1, o2)
             if random_num == self.dominant_stimulus: # dominant stimulus appeared first
-                left, right = low, high
+                left, right = (high, low) if is_sd else (low, high)
             else:
-                left, right = high, low
+                left, right = (low, high) if is_sd else (high, low)
 
             trial['choice_screen_event'] = time.time()
             key = self._present_choices(left, right, trial)
 
             # save information of this trial.
+            trial["is_sd"] = is_sd
+            trial["is_high"] = is_high
             trial['first_stim'] = random_num
             trial['left_outcome'], trial['right_outcome'] = left, right
             trial['key'] = key
             trial['trial_finish_event'] = time.time()
             trials.append(trial)
             # adjust the next jitter times, 
-            excess_dur = jitter_delays.adjust(time.time() - 
-                                                   trial['trial_start_event'])
+            excess_dur = jitter_delay.adjust(time.time() - 
+                                                   trial['trial_start_event'],
+                                             is_high)
         # at the end of the block show fixation for last trial excess_dur
         self._show_fixation_only(excess_dur)
         rslt['trials'] = trials
@@ -297,20 +318,3 @@ class Auditory(ChoiceTask):
     
 if __name__ == "__main__":
     main()
-
-def foo(*args, **kwargs):
-    for arg in args:
-        print 'arg is %s'%arg
-    print kwargs.keys()
-    for k in kwargs:
-        print 'value is %s'%kwargs[k]
-
-
-def foo(n, recur=True): 
-    st = time.time()
-    rslt = []
-    for i in range(n):
-        bar = sim_jitter_delays2() if recur else sim_jitter_delays
-        dur = time.time() - st
-        rslt.append(dur)
-    return rslt

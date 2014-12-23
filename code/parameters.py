@@ -6,7 +6,7 @@
 MAX_PROB_CORRECT_CLAASIFICATION_GIVEN_DOMINANT_STIM = 0.85
 MAX_PROB_CORRECT_CLAASIFICATION_GIVEN_WEAKER_STIM = 0.65
 
-STIM_DUR =  0.8 # time in seconds for which stimulus is shown
+
 WAIT_TIME = 0.5 # All other waiting times like time till which feedback is shown.
 
 # if in the last ntest trial proportion of
@@ -48,14 +48,15 @@ TOO_LATE_SYMBOL = "../design/toolate.png"
 #                     -------------                    
 INTERSTIM_PERIOD = 0.2 
 STIM2_CHOICE_DUR = 0.2 # time for which fixation is shown after stim2 and choice.
-CHOICE_SCREEN_DUR = 2 # choice screen is shown but user can not choose yet.
-CHOICE_SCREEN_DUR2 = 1 # now user can choose
+CHOICE_SCREEN_DUR = 2 # choice screen is shown but subject can not choose yet.
+CHOICE_SCREEN_DUR2 = 1 # now subject can choose.
 SLOW_DOWN_MSG_DUR = 1.0
 TOO_SLOW_MSG_DUR = 0.5
 AVERAGE_DELAY = 1 # time between trials, will be jittered for fmri.
 MESSAGE_DUR = 1.5 # duration of the block message at the start of the block.
 FIXATION_AFTER_MESSAGE_DUR = 0.5 # after block msg fixation is shown for this time.
-
+STIM_DUR =  0.65 #time in seconds for which stimulus is shown set it to 0.8 for 
+# training and behavioral choice task.
 
 #                     2: Keys:
 #                      --------
@@ -67,9 +68,9 @@ ESC_KEY = "escape"
 #                    3: Others:
 #                    ----------
 
-NTRIAL = 2 # number of trials per block.
+NTRIAL = 28 # number of trials per block.
 MAX_OUTCOME = 25
 NPLAY = 2 # number of choices from each block to be played for 
 K = 3 # second argument of the function utilities.random_bianry_generator
 NUMBER_FIXATION_DIST = 5 # distance between the numbers and the fixation cross
-IS_FMRI = True
+IS_FMRI = True # if this is true then ensure that NTRIAL is 28
