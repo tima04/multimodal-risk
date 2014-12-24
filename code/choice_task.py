@@ -132,7 +132,7 @@ class ChoiceTask(object):
             self._show_stimulus(second)
             
             trial['jitter_fixation_after_second_stim_event'] = time.time()
-            self._show_fixation_only(jitter_delay.next()) 
+            self._show_fixation_only(jitter_delay.next(is_high)) 
 
             # present the choices such that low outcome is at left(right), \
             # upon whether order of dominant_stimulus and if the lottery
@@ -145,19 +145,20 @@ class ChoiceTask(object):
 
             trial['choice_screen_event'] = time.time()
             key = self._present_choices(left, right, trial)
-
+            
+            # adjust the next jitter times, 
+            excess_dur = jitter_delay.adjust(time.time() - trial['trial_start_event'],
+                                             is_high)
+            
             # save information of this trial.
             trial["is_sd"] = is_sd
             trial["is_high"] = is_high
             trial['first_stim'] = random_num
             trial['left_outcome'], trial['right_outcome'] = left, right
             trial['key'] = key
+            trial["excess_dur"] = excess_dur
             trial['trial_finish_event'] = time.time()
             trials.append(trial)
-            # adjust the next jitter times, 
-            excess_dur = jitter_delay.adjust(time.time() - 
-                                                   trial['trial_start_event'],
-                                             is_high)
         # at the end of the block show fixation for last trial excess_dur
         self._show_fixation_only(excess_dur)
         rslt['trials'] = trials
@@ -276,10 +277,10 @@ class Semantic(ChoiceTask):
     def __init__(self, win, dominant_stimulus):
         ChoiceTask.__init__(self, win, dominant_stimulus)
         self.stimulus1 = visual.TextStim(self.win, 
-                                         text="HERBIVORE",
+                                         text=SEMANTIC_STIM1,
                                          pos=(0, 0))
         self.stimulus2 = visual.TextStim(self.win, 
-                                         text="CARNIVORE",
+                                         text=SEMANTIC_STIM2,
                                          pos=(0, 0))
         self.start_message = visual.TextStim(self.win,
                                              text="LESEN",

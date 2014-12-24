@@ -73,4 +73,6 @@ MAX_OUTCOME = 25
 NPLAY = 2 # number of choices from each block to be played for 
 K = 3 # second argument of the function utilities.random_bianry_generator
 NUMBER_FIXATION_DIST = 5 # distance between the numbers and the fixation cross
+SEMANTIC_STIM1 = "HERBIVORE"
+SEMANTIC_STIM2 = "CARNIVORE"
 

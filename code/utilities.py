@@ -237,47 +237,53 @@ class Delay(object):
     def __init__(self, is_fmri=True, trial_fixed_dur=4.5, behavioral_delay=1):
         """if is_fmri is true then behavioral_delay is ignored."""
         self.delays = [random.choice(Delay.jitter_low),
-                       random.choice(Delay.jitter_low)] if is_fmri else \
+                       random.choice(Delay.jitter_high)] if is_fmri else \
             [behavioral_delay] 
-        
         self.counter = [0, 0] # 0th index for counter_low and \
                        # 1st for counter_high
         self.trial_fixed_dur = trial_fixed_dur
         self.is_fmri = is_fmri
-        self.last, self.current = 0, 0
+        self.last, self.current = 0, 0 #last and current jitters.
+        self.excess = 0 # excess time last trial took.
+
 
     def next(self, is_high=True):
         assert is_high in [True, False]
+
         if not self.is_fmri: 
             return self.delays[0]
 
         try:
             rslt = self.delays[is_high][self.counter[is_high]]
         except IndexError: 
+            print "Warning: %s EV counter adjusted to zero."%["low", "high"][is_high]
             self.counter[is_high] = 0 
             rslt = self.delays[is_high][self.counter[is_high]]
 
         self.counter[is_high] += 1
         self.last, self.current = self.current, rslt
+        rslt -= self.excess/2.0 # current trial has 2 jitter timings, remove 1/2 of
+        # the excess from each, this works because adjust is called at the end of the trial.
         return round(rslt, 2)
     
     def adjust(self, trial_dur, is_high):
         if not self.is_fmri:
             return 0
-        expected_dur = self.trial_fixed_dur + self.last + self.current
-        excess = trial_dur - expected_dur
-        try: # remove the excess times from the jitters of same type.
-            self.delays[is_high][self.counter[is_high]] -= excess/2.0
-            self.delays[is_high][self.counter[is_high]+1] -= excess/2.0
-            return None
-        except IndexError: 
-            try: # jitters of same types are over, removing from other type.
-                is_low = 1 - is_high
-                self.delays[is_low][self.counter[is_low]] -= excess/2.0
-                self.delays[is_low][self.counter[is_low]+1] -= excess/2.0
-                return None
-            except IndexError: # this was the last trial
-                return excess
+        expected_dur = self.trial_fixed_dur + self.last + self.current - self.excess
+        self.excess = trial_dur - expected_dur # this will be removed from the next jitter.
+        return self.excess
+        # try: # remove the excess times from the jitters of same type.
+        #     self.delays[is_high][self.counter[is_high]] -= excess/2.0
+        #     self.delays[is_high][self.counter[is_high]+1] -= excess/2.0
+        #     return None
+        # except IndexError: 
+        #     try: # jitters of same types are over, removing from other type.
+        #         is_low = 1 - is_high
+        #         self.delays[is_low][self.counter[is_low]] -= excess/2.0
+        #         self.delays[is_low][self.counter[is_low]+1] -= excess/2.0
+        #         return None
+        #     except IndexError: # this was the last trial
+        #         return excess
 
 
 class Outcomes(object):
@@ -322,11 +328,12 @@ class Outcomes(object):
         times ev ratio is high and 80% low, if ev ratio is low then 50% of times, higher
         ev is associated with weaker stim and 50% with dominant stim."""
         high_ev = 0.2 # proportion of trial with high ev ratio
+        sd = 0.20 # proportion of trials where one lottery stochasticaly dominates another
         # higher ev ratio case
         # high is within 90% of max_outcome and low is 1/3 to 1/2 of high,
         # so ev ratio is between 1.5 to 2.3
         is_high = False
-        is_sd = False
+        is_sd = (sd > random.uniform(0,1))
         if random.uniform(0, 1) < high_ev: 
             is_high = True
             high = random.choice(range(int(0.9*max_outcome), 
