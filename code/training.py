@@ -14,8 +14,9 @@ dominant for visual mode, stim j for auditory and stim k for semantic,
 (i, j, k are in {1, 2}). The function dominant_stimulie takes id modulo
 8 as an argument and returns the dominant stimulus, eg: dominant_stimulie(0)
 = "111".
-stim1 is blue_egg for visual mode, herbivore for semantic mode
-and dragon1_sound for auditory mode.
+stim1 is blue_egg for visual mode, value of SEMANTIC_STIM1 in
+parameters file(currently herbivore) for semantic mode
+and dragon1_sound for auditory mode
 """
 
 import random
@@ -25,15 +26,15 @@ from abc import ABCMeta, abstractmethod
 from parameters import *
 from pygame import mixer
 from utilities import *
+from report import Summary
 
 def main():
     data = {'start_time': timestamp()}
-
     try:
         data["id"] = dialog_box()[0]
     except: # user pressed cancel in the dialog box
         return None 
-    
+
     win = visual.Window([800, 600], allowGUI=True, units='deg',
                         color = "grey",fullscr=FULLSCREEN, monitor="testMonitor")
 
@@ -59,9 +60,25 @@ def main():
 
     data['finish_time'] = timestamp()
     save_data(data)
-
+    Summary(data, is_training=True).main() #write the summary file.
+    # pop up ENDE in RED if they haven't learned
+    # pop up ENDE in GREEN if they have learned,
+    # below that, also write: BITTE HOLEN SIE JETZT DEN STUDIENLEITER
+    # Esc will terminate the experiment.
+    learnp = all([data[mode]['learnp'] for mode in ["Visual", "Auditory", 
+                                                    "Semantic"]])
+    msg_col = "green" if learnp else "red"
+    end_msg = visual.TextStim(win, 
+                              text = "\t\t\tENDE\n\n" +
+                              "BITTE HOLEN SIE JETZT DEN STUDIENLEITER", 
+                              color=msg_col)
+    end_msg.draw()
+    win.flip()
+    event.waitKeys(keyList=["escape"])
+    # quit the win and generate summary file.             
     win.close()
     core.quit()
+    
 
 class Training(object):
     """
@@ -89,8 +106,8 @@ class Training(object):
         self.prob_drg1_given_stim2 = 1 - self.prob_drg2_given_stim2
         # feedback generators, generate random binary numbers but even for small
         # sample estimated probabilities stay close to true probabilities.
-        self.stim1_feedback_gen = random_binary_generator(self.prob_drg1_given_stim1, k=K)
-        self.stim2_feedback_gen = random_binary_generator(self.prob_drg2_given_stim2, k=K)
+        self.stim1_feedback_gen = random_binary_generator(self.prob_drg1_given_stim1, k=K_FEEDBACK)
+        self.stim2_feedback_gen = random_binary_generator(self.prob_drg2_given_stim2, k=K_FEEDBACK)
         self.stim_gen = random_binary_generator(0.5, k=K)
         # Following are defined in concrete classes.
         self.dragon1 = None
@@ -294,10 +311,10 @@ class Semantic(Training):
                                        pos=(5,0),
                                        color="white")
         self.stimulus1 = visual.TextStim(self.win, 
-                                         text="HERBIVORE",
+                                         text=SEMANTIC_STIM1,
                                          pos=(0, 0))
         self.stimulus2 = visual.TextStim(self.win, 
-                                         text="CARNIVORE",
+                                         text=SEMANTIC_STIM2,
                                          pos=(0, 0))
         self.start_message = visual.TextStim(self.win,
                                              text=open(START_MESSAGE_SEMANTIC).\
@@ -357,7 +374,7 @@ class Auditory(Training):
         channel = mixer.Channel(0)
         channel.set_volume(1,1)
         channel.play(stimulus)
-        time.sleep(1.2) # Todo: setting it arbitrary current WAIT_TIME is not enough.
+        time.sleep(WAIT_TIME)
     
     def _render_dragons(self, highlight=""):
         def play(drg1, drg2):
@@ -385,9 +402,10 @@ class Auditory(Training):
         self.speaker2.draw()
         self.fixation.draw()
         self.win.flip()
-        play(drg1, drg2)
+        #play(drg1, drg2)
+        if highlight: # this will disable the simultaneous play of the dragon
+            play(drg1, drg2)
         self.speaker1.color = self.speaker2.color = "white"
-
 
 if __name__ == "__main__":
     main()

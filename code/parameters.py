@@ -6,7 +6,6 @@
 MAX_PROB_CORRECT_CLAASIFICATION_GIVEN_DOMINANT_STIM = 0.85
 MAX_PROB_CORRECT_CLAASIFICATION_GIVEN_WEAKER_STIM = 0.65
 
-
 WAIT_TIME = 0.5 # All other waiting times like time till which feedback is shown.
 
 # if in the last ntest trial proportion of
@@ -14,7 +13,7 @@ WAIT_TIME = 0.5 # All other waiting times like time till which feedback is shown
 #then learning phase is over.
 NTEST, MIN_ACCURACY = 10, 0.8
 
-MAX_TRIAL = 4 # if subject has not learned by max_trial then give up on him or her.
+MAX_TRIAL = 2 # if subject has not learned by max_trial then give up on him or her.
 INTER_TRIAL_DELAY = 0.5
 
 #==================== Resources ====================
@@ -57,22 +56,27 @@ MESSAGE_DUR = 1.5 # duration of the block message at the start of the block.
 FIXATION_AFTER_MESSAGE_DUR = 0.5 # after block msg fixation is shown for this time.
 STIM_DUR =  0.65 #time in seconds for which stimulus is shown set it to 0.8 for 
 # training and behavioral choice task.
+FIXATION_AFTER_LAST_TRIAL_DUR = 2
 
 #                     2: Keys:
 #                      --------
-SCANNER_PULSE_KEYS = ["space", "Q"]
+SCANNER_PULSE_KEYS = ["space"]
 LEFT_KEY = "left"
 RIGHT_KEY = "right"
 ESC_KEY = "escape"
 
 #                    3: Others:
 #                    ----------
-IS_FMRI = True # if this is true then make sure that NTRIAL is 28
-NTRIAL = 28 # number of trials per block.
+IS_FMRI = False # if this is true then make sure that NTRIAL is 28
+SCANNER_MODE = False # when this and IS_FMRI are true then scanner pulse
+# starts the experiment otherwise pressing a key in SCANNER_PULSE_KEYS does.
+NTRIAL = 2 # number of trials per block.
 MAX_OUTCOME = 25
 NPLAY = 2 # number of choices from each block to be played for 
-K = 3 # second argument of the function utilities.random_bianry_generator
+# second argument of the function utilities.random_bianry_generator
+K_FEEDBACK = 2
+K = 2 # other place where this function is used
+
 NUMBER_FIXATION_DIST = 5 # distance between the numbers and the fixation cross
 SEMANTIC_STIM1 = "HERBIVORE"
 SEMANTIC_STIM2 = "CARNIVORE"
-

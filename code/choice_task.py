@@ -1,4 +1,4 @@
- # -*- coding: utf-8 -*-
+# -*- coding: utf-8 -*-
 import random
 import time
 from psychopy import core, visual, event, sound
@@ -6,48 +6,61 @@ from pygame import mixer
 from abc import ABCMeta, abstractmethod
 from utilities import *
 from parameters import *
+from report import Summary
+#from wait_scanner_trigger import wait_scanner_trigger # seemingly bug 
+# in the psychopy parallel module, so this import is raising error.
 
 def main():
     data = {'start_time': timestamp()}
-    
+
     if IS_FMRI:
         assert NTRIAL == 28, "number of trial should be 28 for fmri choice task"
 
-    # preload Delay and Outcomes class, 
+    # Time saving stuff.
+    ## preload Delay and Outcomes class, 
     Delay()
     Outcomes()
-
+    ## making objects which require reading from file, global.
+    temp_win = visual.Window([1, 1], monitor='testMonitor')
+    global slow_down_msg, too_slow_msg, visual_stim1, visual_stim2, speaker_sym
+    slow_down_msg =  visual.ImageStim(temp_win, image=SLOW_DOWN_SYMBOL)
+    too_slow_msg = visual.ImageStim(temp_win, image=TOO_LATE_SYMBOL)
+    visual_stim1 = visual.ImageStim(temp_win, image=STIM1_VISUAL)
+    visual_stim2 = visual.ImageStim(temp_win, image=STIM2_VISUAL)
+    speaker_sym = visual.ImageStim(temp_win, image=SPEAKER_SYMBOL)
+    temp_win.close()
 
     info = dialog_box(choice_task=True)
     if not info: # user pressed cancel
         return None
-
     data['id'], data['run'] = info
-
 
     #require to calculate outcome of lotteries.
     dominants  = get_dominant_stimulie(data['id']) 
     data["dominant_stimulie"] = dominants
-
-    win = visual.Window([800, 600], 
-                        allowGUI=True, 
-                        monitor='testMonitor', 
-                        units='deg',
-                        fullscr=FULLSCREEN,
-                        color = "grey")
+    
+    win = visual.Window([800, 600], allowGUI=True, monitor='testMonitor', 
+                        units='deg', color = "grey", fullscr=FULLSCREEN)
+    slow_down_msg.win = too_slow_msg.win = visual_stim1.win = visual_stim2.win =\
+    speaker_sym.win = win
     mixer.init()
-
     blocks = [Visual(win, dominants[0]), 
               Auditory(win, dominants[1]),
               Semantic(win, dominants[2])]
     random.shuffle(blocks)
     data['block_order'] = [str(block) for block in blocks]
-
+    
     # show the fixation and wait for the scanner trigger key
     fixation = visual.TextStim(win, text="+", pos=(0, 0))
     fixation.draw()
     win.flip()
-    event.waitKeys(keyList=SCANNER_PULSE_KEYS)
+    if SCANNER_MODE and IS_FMRI:
+        # wait_scanner_trigger() # seemingly bug in the psychopy parallel module
+        # so for a while quit the experiment
+        win.close()
+        core.quit()
+    else:
+        event.waitKeys(keyList=SCANNER_PULSE_KEYS)
     data["scanner_trigger_time"] = time.time()
 
     for block in blocks:
@@ -57,9 +70,8 @@ def main():
         save_data(data, partial=True) 
 
     data['finish_time'] = timestamp()
-    save_data(data)
-    SummaryChoiceData(data).main() # generate the summary of choice data
-
+    save_data(data, is_fmri=IS_FMRI)
+    Summary(data, is_training=False).main() #write the summary file.
 
 class ChoiceTask(object):
     """ Abstract class, Visual, Auditory and Semantic are
@@ -73,11 +85,11 @@ class ChoiceTask(object):
     def __init__(self, win, dominant_stimulus):
         self.win = win
         self.fixation = visual.TextStim(self.win, text="+", pos=(0, 0), color="black")
-        self.slow_down_msg = visual.ImageStim(self.win, image=SLOW_DOWN_SYMBOL)
-        self.too_slow_msg = visual.ImageStim(self.win, image=TOO_LATE_SYMBOL)
+        # self.slow_down_msg = visual.ImageStim(self.win, image=SLOW_DOWN_SYMBOL)
+        # self.too_slow_msg = visual.ImageStim(self.win, image=TOO_LATE_SYMBOL)
         self.dominant_stimulus = int(dominant_stimulus)
         # random num to determine which stim appears first.
-        self.random_num_gen = random_binary_generator(0.5, k=4)
+        self.random_num_gen = random_binary_generator(0.5, k=K)
         # Concrete classes will define following attributes.
         self.stimulus1 = ""
         self.stimulus2 = ""
@@ -88,12 +100,15 @@ class ChoiceTask(object):
         which has keys start_time, finish_time and a list trials, elements 
         of which contain data from each trial."""
         # trial durarion is sum of fixed and jittered durations. Fixed duration 
-        # can vary if subject respond too early or too late. 
+        # can vary if subject respond too early or too late, to keep the block
+        # time constant this variation is removed from the jittered durations.
+        rslt = {'start_time': time.time()}
         trial_fixed_dur = 2 * STIM_DUR + INTERSTIM_PERIOD + CHOICE_SCREEN_DUR + \
                           CHOICE_SCREEN_DUR2
-        rslt = {'start_time': time.time()}
         jitter_delay = Delay(IS_FMRI, trial_fixed_dur)
         outcomes = Outcomes(IS_FMRI, MAX_OUTCOME)
+        if IS_FMRI:
+            rslt["lowEV_jitters"], rslt["highEV_jitters"] = jitter_delay.delays
 
         rslt['start_message_event'] = time.time()
         self.start_message.draw()
@@ -159,8 +174,10 @@ class ChoiceTask(object):
             trial["excess_dur"] = excess_dur
             trial['trial_finish_event'] = time.time()
             trials.append(trial)
-        # at the end of the block show fixation for last trial excess_dur
-        self._show_fixation_only(excess_dur)
+        # at the end of the block show fixation.
+        duration = FIXATION_AFTER_LAST_TRIAL_DUR - excess_dur
+        self._show_fixation_only(duration)
+
         rslt['trials'] = trials
         rslt['finish_time'] = time.time()
         return rslt
@@ -209,7 +226,7 @@ class ChoiceTask(object):
         if key in [LEFT_KEY, RIGHT_KEY]:
             trial['slow_down_msg_event'] = time.time()
             trial['too_fast'] = True
-            self._render(self.slow_down_msg, duration=SLOW_DOWN_MSG_DUR)
+            self._render(slow_down_msg, duration=SLOW_DOWN_MSG_DUR)
             return key
         if key == ESC_KEY:
             self.win.close()
@@ -229,7 +246,7 @@ class ChoiceTask(object):
         if key == "none":
             trial['too_slow'] = True
             trial['too_slow_msg_event'] = time.time()
-            self._render(self.too_slow_msg, duration=TOO_SLOW_MSG_DUR)
+            self._render(too_slow_msg, duration=TOO_SLOW_MSG_DUR)
             return key
         #show the pressed key in yellow for the remaining time.
         if key == LEFT_KEY:
@@ -255,15 +272,10 @@ class ChoiceTask(object):
 class Visual(ChoiceTask):
     def __init__(self, win, dominant_stimulus):
         ChoiceTask.__init__(self, win, dominant_stimulus)
-        self.stimulus1 = visual.ImageStim(self.win, 
-                                          image=STIM1_VISUAL,
-                                          pos=(0, 0))
-        self.stimulus2 = visual.ImageStim(self.win, 
-                                          image=STIM2_VISUAL,
-                                          pos=(0, 0))
-        self.start_message = visual.TextStim(self.win,
-                                             text="SEHEN",
-                                             pos=(0, 0))
+        self.stimulus1 = visual_stim1
+        self.stimulus2 = visual_stim2
+        self.start_message = visual.TextStim(self.win, text="SEHEN", bold=True,
+                                             color="red")
 
     def __str__(self):
         return "Visual"
@@ -282,10 +294,9 @@ class Semantic(ChoiceTask):
         self.stimulus2 = visual.TextStim(self.win, 
                                          text=SEMANTIC_STIM2,
                                          pos=(0, 0))
-        self.start_message = visual.TextStim(self.win,
-                                             text="LESEN",
-                                             pos=(0, 0))
-
+        self.start_message = visual.TextStim(self.win, text="LESSEN", bold=True,
+                                             color="red")
+ 
     def __str__(self):
         return "Semantic"
         
@@ -299,13 +310,9 @@ class Auditory(ChoiceTask):
         ChoiceTask.__init__(self, win, dominant_stimulus)
         self.stimulus1 = mixer.Sound(STIM1_AUDIO)
         self.stimulus2 = mixer.Sound(STIM2_AUDIO)
-        self.start_message = visual.TextStim(self.win,
-                                              text="HOREN",
-                                              pos=(0, 0))
-        self.speaker = visual.ImageStim(self.win,
-                                        image=SPEAKER_SYMBOL,
-                                        color="white",
-                                        pos=(0, 0))
+        self.start_message = visual.TextStim(self.win, text=u"HÖREN", bold=True,
+                                             color="red")
+        self.speaker = speaker_sym
     
     def __str__(self):
         return "Auditory"
