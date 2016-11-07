@@ -1,2 +1,2 @@
 # multimodal-risk
-Code for the neurscience project.
+Code for the neuroscience project.
